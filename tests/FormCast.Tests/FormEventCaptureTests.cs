@@ -220,7 +220,7 @@ namespace FormCast.Tests
  var q2 = _plugin.TryGetEventQueue(seq2)!.DrainAll();
 
  Assert.Equal(2, q1.Count);
- Assert.Equal(1, q2.Count);
+ Assert.Single(q2);
  Assert.All(q1, e => Assert.Equal(seq1, e.FormHandle));
  Assert.Equal(seq2, q2[0].FormHandle);
  }
