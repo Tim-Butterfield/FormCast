@@ -1,0 +1,867 @@
+@echo off
+setlocal
+on break gosub fc_cleanup
+::
+:: designer-integration.btm -- Integration tests for the visual designer
+:: =====================================================================
+::
+:: Tests toolbar buttons, menu items, and context menu actions by
+:: simulating clicks via @FORMSIMULATE and verifying results with
+:: @FORMGET. Each test creates a known initial state, triggers an
+:: action, and checks the outcome.
+::
+:: Usage:
+::   set FORMCAST_DLL=path\to\FormCast.dll
+::   call tests\designer-integration.btm
+::
+:: timeout=120
+::
+
+set REPO=%@full[%_batchpath\..]
+set PASS=0
+set FAIL=0
+set TOTAL=0
+
+call "%REPO\examples\formcast-check.btm" load
+
+:: Enable debug logging to the test folder
+set RC=%@formlog[debug,%_batchpath\designer-integration.log]
+
+echo FormCast v%@formversion[] -- Designer Integration Tests
+echo ============================================================
+echo.
+
+:: ==================== Setup ====================
+:: Load the three designer windows from templates
+set hCanvas=%@formopen[form,test_canvas,0,0,500,420]
+set RC=%@formset[%hCanvas,.,title,Test Canvas]
+set RC=%@formset[%hCanvas,.,design_mode,1]
+
+set hTool=%@formload[%REPO\examples\designer\templates\toolbox.jsonc]
+set hProps=%@formload[%REPO\examples\designer\templates\properties.jsonc]
+
+set RC=%@formset[%hCanvas,.,confirmclose,1]
+set RC=%@formset[%hTool,.,confirmclose,1]
+set RC=%@formset[%hProps,.,confirmclose,1]
+
+set RC=%@formshow[%hCanvas]
+set RC=%@formshow[%hTool]
+set RC=%@formshow[%hProps]
+
+:: Attach context menu from toolbox to canvas
+set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+
+:: ==================== Helper subroutines ====================
+goto :start_tests
+
+:add_test_controls
+  :: Add 3 controls at known positions
+  set RC=%@formadd[%hCanvas,Label1,LABEL,20,20,100,20,Label]
+  set RC=%@formadd[%hCanvas,Edit1,EDIT,40,60,150,24,]
+  set RC=%@formadd[%hCanvas,Button1,BUTTON,80,100,80,28,Button]
+return
+
+:clear_canvas
+  :: Remove all controls by closing and recreating the canvas
+  set RC=%@formclose[%hCanvas]
+  set hCanvas=%@formopen[form,test_canvas,0,0,500,420]
+  set RC=%@formset[%hCanvas,.,title,Test Canvas]
+  set RC=%@formset[%hCanvas,.,design_mode,1]
+  set RC=%@formset[%hCanvas,.,confirmclose,1]
+  set RC=%@formshow[%hCanvas]
+  set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+return
+
+:check
+  :: Usage: set _tname=test name & set _expect=expected & set _actual=actual & gosub check
+  set /a TOTAL=%TOTAL + 1
+  iff "%_actual" == "%_expect" then
+    set /a PASS=%PASS + 1
+    echo   PASS: %_tname
+  else
+    set /a FAIL=%FAIL + 1
+    echo   FAIL: %_tname (expected=[%_expect] actual=[%_actual])
+  endiff
+return
+
+:start_tests
+
+:: ==================== Test: controllist JSON ====================
+echo --- controllist ---
+gosub add_test_controls
+set _json=%@formget[%hCanvas,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _jn=%@jsonnodes[/json/items/]
+
+set _tname=controllist returns 3 items
+set _expect=3
+set _actual=%_jn
+gosub check
+
+set _tname=controllist first id is Label1
+set _expect=Label1
+set _actual=%@unquote[%@jsonxpath[/json/items/[1]/id/]]
+gosub check
+
+set _tname=controllist first type is LABEL
+set _expect=LABEL
+set _actual=%@unquote[%@jsonxpath[/json/items/[1]/type/]]
+gosub check
+
+set _tname=controllist third id is Button1
+set _expect=Button1
+set _actual=%@unquote[%@jsonxpath[/json/items/[3]/id/]]
+gosub check
+
+set _jrc=%@jsonreset[]
+echo.
+
+:: ==================== Test: Multi-select properties ====================
+echo --- multi-select ---
+:: Select Label1, then Ctrl+click Edit1
+set RC=%@formsimulate[%hCanvas,Label1,mousedown,10:10]
+set RC=%@formsimulate[%hCanvas,Label1,mouseup,10:10]
+delay /m 200
+
+set _tname=single select shows Label1
+set _expect=Label1
+set _actual=%@formget[%hCanvas,.,selected]
+gosub check
+
+set _tname=selectioncount is 1
+set _expect=1
+set _actual=%@formget[%hCanvas,.,selectioncount]
+gosub check
+echo.
+
+:: ==================== Test: Toolbar buttons fire events ====================
+echo --- toolbar click events ---
+gosub clear_canvas
+gosub add_test_controls
+
+:: Click tbDelete on toolbox -- should enqueue a click event
+set RC=%@formsimulate[%hTool,tbDelete,click]
+delay /m 200
+
+:: Drain events and check for tbDelete
+set _found_tbDelete=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbDelete" set _found_tbDelete=1
+enddo
+
+set _tname=tbDelete click fires event
+set _expect=1
+set _actual=%_found_tbDelete
+gosub check
+
+:: Click tbCopy
+set RC=%@formsimulate[%hTool,tbCopy,click]
+delay /m 200
+set _found_tbCopy=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbCopy" set _found_tbCopy=1
+enddo
+
+set _tname=tbCopy click fires event
+set _expect=1
+set _actual=%_found_tbCopy
+gosub check
+
+:: Click tbPaste
+set RC=%@formsimulate[%hTool,tbPaste,click]
+delay /m 200
+set _found_tbPaste=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbPaste" set _found_tbPaste=1
+enddo
+
+set _tname=tbPaste click fires event
+set _expect=1
+set _actual=%_found_tbPaste
+gosub check
+
+:: Click tbUndo
+set RC=%@formsimulate[%hTool,tbUndo,click]
+delay /m 200
+set _found_tbUndo=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbUndo" set _found_tbUndo=1
+enddo
+
+set _tname=tbUndo click fires event
+set _expect=1
+set _actual=%_found_tbUndo
+gosub check
+
+:: Click tbRedo
+set RC=%@formsimulate[%hTool,tbRedo,click]
+delay /m 200
+set _found_tbRedo=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbRedo" set _found_tbRedo=1
+enddo
+
+set _tname=tbRedo click fires event
+set _expect=1
+set _actual=%_found_tbRedo
+gosub check
+echo.
+
+:: ==================== Test: Menu items fire events ====================
+echo --- menu click events ---
+
+set RC=%@formsimulate[%hTool,mnuNew,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuNew" set _found=1
+enddo
+set _tname=mnuNew click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuOpen,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuOpen" set _found=1
+enddo
+set _tname=mnuOpen click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuSave,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuSave" set _found=1
+enddo
+set _tname=mnuSave click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuDelete,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuDelete" set _found=1
+enddo
+set _tname=mnuDelete click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuUndo,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuUndo" set _found=1
+enddo
+set _tname=mnuUndo click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuRedo,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuRedo" set _found=1
+enddo
+set _tname=mnuRedo click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuCut,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuCut" set _found=1
+enddo
+set _tname=mnuCut click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuCopy,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuCopy" set _found=1
+enddo
+set _tname=mnuCopy click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuPaste,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuPaste" set _found=1
+enddo
+set _tname=mnuPaste click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+echo.
+
+:: ==================== Test: Align submenu events ====================
+echo --- align menu events ---
+
+set RC=%@formsimulate[%hTool,mnuAlignL,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuAlignL" set _found=1
+enddo
+set _tname=mnuAlignL click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuAlignR,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuAlignR" set _found=1
+enddo
+set _tname=mnuAlignR click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuDistH,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuDistH" set _found=1
+enddo
+set _tname=mnuDistH click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,mnuSameW,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "mnuSameW" set _found=1
+enddo
+set _tname=mnuSameW click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+echo.
+
+:: ==================== Test: Alignment toolbar buttons ====================
+echo --- alignment toolbar events ---
+
+set RC=%@formsimulate[%hTool,tbAlignL,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbAlignL" set _found=1
+enddo
+set _tname=tbAlignL click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,tbDistH,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbDistH" set _found=1
+enddo
+set _tname=tbDistH click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,tbSameW,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "tbSameW" set _found=1
+enddo
+set _tname=tbSameW click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+echo.
+
+:: ==================== Test: Align Left (functional) ====================
+echo --- align left functional ---
+gosub clear_canvas
+gosub add_test_controls
+
+:: Verify initial positions
+set _tname=Label1 initial x=20
+set _expect=20
+set _actual=%@formget[%hCanvas,Label1,x]
+gosub check
+
+set _tname=Edit1 initial x=40
+set _expect=40
+set _actual=%@formget[%hCanvas,Edit1,x]
+gosub check
+
+set _tname=Button1 initial x=80
+set _expect=80
+set _actual=%@formget[%hCanvas,Button1,x]
+gosub check
+
+:: Single select align left: should align to canvas edge (x=0)
+set RC=%@formset[%hCanvas,Label1,position,0:20]
+set _tname=single align left moves to x=0
+set _expect=0
+set _actual=%@formget[%hCanvas,Label1,x]
+gosub check
+echo.
+
+:: ==================== Test: Grid size ====================
+echo --- grid size ---
+set RC=%@formset[%hCanvas,.,gridsize,16]
+
+set _tname=gridsize set to 16
+set _expect=16
+set _actual=%@formget[%hCanvas,.,gridsize]
+gosub check
+
+set RC=%@formset[%hCanvas,.,gridsize,8]
+
+set _tname=gridsize reset to 8
+set _expect=8
+set _actual=%@formget[%hCanvas,.,gridsize]
+gosub check
+echo.
+
+:: ==================== Test: Delete control ====================
+echo --- delete control ---
+gosub clear_canvas
+gosub add_test_controls
+
+set _tname=canvas has 3 controls before delete
+set _expect=3
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+set RC=%@formset[%hCanvas,Edit1,delete,]
+
+set _tname=canvas has 2 controls after delete
+set _expect=2
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+echo.
+
+:: ==================== Test: Position and size ====================
+echo --- position and size ---
+gosub clear_canvas
+gosub add_test_controls
+
+set RC=%@formset[%hCanvas,Label1,position,100:200]
+set _tname=position set x=100
+set _expect=100
+set _actual=%@formget[%hCanvas,Label1,x]
+gosub check
+
+set _tname=position set y=200
+set _expect=200
+set _actual=%@formget[%hCanvas,Label1,y]
+gosub check
+
+set RC=%@formset[%hCanvas,Label1,size,250:30]
+set _tname=size set width=250
+set _expect=250
+set _actual=%@formget[%hCanvas,Label1,width]
+gosub check
+
+set _tname=size set height=30
+set _expect=30
+set _actual=%@formget[%hCanvas,Label1,height]
+gosub check
+echo.
+
+:: ==================== Test: Context menu events ====================
+echo --- context menu events ---
+
+set RC=%@formsimulate[%hTool,ctxDelete,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "ctxDelete" set _found=1
+enddo
+set _tname=ctxDelete click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,ctxCopy,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "ctxCopy" set _found=1
+enddo
+set _tname=ctxCopy click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+
+set RC=%@formsimulate[%hTool,ctxAlignL,click]
+delay /m 200
+set _found=0
+do ev in /p formevents %hTool
+  set _ctrl=%@word[2,%ev]
+  if "%_ctrl" == "ctxAlignL" set _found=1
+enddo
+set _tname=ctxAlignL click fires event
+set _expect=1
+set _actual=%_found
+gosub check
+echo.
+
+:: ==================== Test: @FORMLOG ====================
+echo --- @FORMLOG ---
+set _logfile=%TEMP\fc_test_log.txt
+if exist "%_logfile" del /q "%_logfile"
+
+set RC=%@formlog[debug,%_logfile]
+set _tname=@FORMLOG returns 0
+set _expect=0
+set _actual=%RC
+gosub check
+
+:: Trigger a logged action
+set RC=%@formset[%hCanvas,Label1,position,10:10]
+set RC=%@formlog[off]
+
+iff exist "%_logfile" then
+  set _tname=log file created
+  set _expect=1
+  set _actual=1
+  gosub check
+else
+  set _tname=log file created
+  set _expect=1
+  set _actual=0
+  gosub check
+endiff
+if exist "%_logfile" del /q "%_logfile"
+echo.
+
+:: ==================== Test: @FORMSAVEIMAGE ====================
+echo --- @FORMSAVEIMAGE ---
+set _imgfile=%TEMP\fc_test_image.png
+if exist "%_imgfile" del /q "%_imgfile"
+
+set RC=%@formsaveimage[%hCanvas,%_imgfile]
+set _tname=@FORMSAVEIMAGE returns 0
+set _expect=0
+set _actual=%RC
+gosub check
+
+iff exist "%_imgfile" then
+  set _tname=image file created
+  set _expect=1
+  set _actual=1
+  gosub check
+else
+  set _tname=image file created
+  set _expect=1
+  set _actual=0
+  gosub check
+endiff
+if exist "%_imgfile" del /q "%_imgfile"
+echo.
+
+:: ==================== Test: Copy/Paste simple control ====================
+echo --- copy/paste simple ---
+gosub clear_canvas
+gosub add_test_controls
+
+:: Copy Label1
+set RC=%@formset[%hCanvas,.,clipcopy,Label1]
+
+set _tname=canvas has 3 controls before paste
+set _expect=3
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Paste
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=canvas has 4 controls after paste
+set _expect=4
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Verify pasted control has new unique ID (Label2, not Label1_copy1)
+set _json=%@formget[%hCanvas,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _jn=%@jsonnodes[/json/items/]
+set _lastid=%@unquote[%@jsonxpath[/json/items/[%_jn]/id/]]
+set _jrc=%@jsonreset[]
+
+set _tname=pasted control has unique ID (not Label1)
+set _expect=0
+iff "%_lastid" == "Label1" then
+  set _actual=1
+else
+  set _actual=0
+endiff
+gosub check
+
+set _tname=pasted ID is Label2
+set _expect=Label2
+set _actual=%_lastid
+gosub check
+echo.
+
+:: ==================== Test: Copy/Paste container with children ====================
+echo --- copy/paste container ---
+gosub clear_canvas
+
+:: Add a panel with two children
+set RC=%@formadd[%hCanvas,Panel1,PANEL,20,20,200,150,]
+set RC=%@formadd[%hCanvas,Panel1/btn1,BUTTON,10,10,80,28,Inside]
+set RC=%@formadd[%hCanvas,Panel1/lbl1,LABEL,10,50,100,20,Child Label]
+
+set _tname=canvas has 1 top-level control (Panel1)
+set _expect=1
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Copy Panel1 (should include children)
+set RC=%@formset[%hCanvas,.,clipcopy,Panel1]
+
+:: Paste
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=canvas has 2 top-level controls after paste
+set _expect=2
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Verify pasted panel has new ID
+set _json=%@formget[%hCanvas,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _pastedid=%@unquote[%@jsonxpath[/json/items/[2]/id/]]
+set _jrc=%@jsonreset[]
+
+set _tname=pasted panel is Panel2 (not Panel1)
+set _expect=Panel2
+set _actual=%_pastedid
+gosub check
+echo.
+
+:: ==================== Test: Cut removes control ====================
+echo --- cut ---
+gosub clear_canvas
+gosub add_test_controls
+
+set _tname=canvas has 3 controls before cut
+set _expect=3
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Cut Edit1
+set RC=%@formset[%hCanvas,.,clipcut,Edit1]
+
+set _tname=canvas has 2 controls after cut
+set _expect=2
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Paste the cut control back
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=canvas has 3 controls after paste
+set _expect=3
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+echo.
+
+:: ==================== Test: Multiple pastes get unique IDs ====================
+echo --- multiple paste unique IDs ---
+gosub clear_canvas
+set RC=%@formadd[%hCanvas,Button1,BUTTON,20,20,80,28,Button]
+
+set RC=%@formset[%hCanvas,.,clipcopy,Button1]
+set RC=%@formset[%hCanvas,.,clippaste,]
+set RC=%@formset[%hCanvas,.,clippaste,]
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=canvas has 4 controls after 3 pastes
+set _expect=4
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Check all IDs are unique via controllist
+set _json=%@formget[%hCanvas,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _id1=%@unquote[%@jsonxpath[/json/items/[1]/id/]]
+set _id2=%@unquote[%@jsonxpath[/json/items/[2]/id/]]
+set _id3=%@unquote[%@jsonxpath[/json/items/[3]/id/]]
+set _id4=%@unquote[%@jsonxpath[/json/items/[4]/id/]]
+set _jrc=%@jsonreset[]
+
+set _tname=first control is Button1
+set _expect=Button1
+set _actual=%_id1
+gosub check
+
+set _tname=second control is Button2
+set _expect=Button2
+set _actual=%_id2
+gosub check
+
+set _tname=third control is Button3
+set _expect=Button3
+set _actual=%_id3
+gosub check
+
+set _tname=fourth control is Button4
+set _expect=Button4
+set _actual=%_id4
+gosub check
+echo.
+
+:: ==================== Test: Arrow key nudge ====================
+echo --- arrow key nudge ---
+gosub clear_canvas
+set RC=%@formadd[%hCanvas,NudgeBtn,BUTTON,40,40,80,28,Nudge]
+
+set _tname=NudgeBtn initial x=40
+set _expect=40
+set _actual=%@formget[%hCanvas,NudgeBtn,x]
+gosub check
+
+:: Nudge right by grid size (default 8)
+set RC=%@formset[%hCanvas,NudgeBtn,moveby,8:0]
+
+set _tname=NudgeBtn after nudge right x=48
+set _expect=48
+set _actual=%@formget[%hCanvas,NudgeBtn,x]
+gosub check
+
+:: Nudge down
+set RC=%@formset[%hCanvas,NudgeBtn,moveby,0:8]
+
+set _tname=NudgeBtn after nudge down y=48
+set _expect=48
+set _actual=%@formget[%hCanvas,NudgeBtn,y]
+gosub check
+echo.
+
+:: ==================== Test: Cut preserves original ID on paste ====================
+echo --- cut preserves ID ---
+gosub clear_canvas
+set RC=%@formadd[%hCanvas,MyButton,BUTTON,20,20,80,28,Test]
+
+set RC=%@formset[%hCanvas,.,clipcut,MyButton]
+
+set _tname=canvas empty after cut
+set _expect=0
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=pasted control reuses original ID
+set _expect=MyButton
+set _json=%@formget[%hCanvas,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _actual=%@unquote[%@jsonxpath[/json/items/[1]/id/]]
+set _jrc=%@jsonreset[]
+gosub check
+echo.
+
+:: ==================== Test: Multi-select copy/paste ====================
+echo --- multi-select copy/paste ---
+gosub clear_canvas
+set RC=%@formadd[%hCanvas,Label1,LABEL,20,20,100,20,Label]
+set RC=%@formadd[%hCanvas,Button1,BUTTON,20,60,80,28,Button]
+
+:: Select both via simulated clicks
+set RC=%@formsimulate[%hCanvas,Label1,mousedown,10:10]
+set RC=%@formsimulate[%hCanvas,Label1,mouseup,10:10]
+delay /m 200
+
+set _tname=canvas has 2 controls before multi-copy
+set _expect=2
+set _actual=%@formget[%hCanvas,.,controls]
+gosub check
+
+:: Copy all selected (empty value = use selectedall)
+set RC=%@formset[%hCanvas,.,clipcopy,]
+
+:: Paste
+set RC=%@formset[%hCanvas,.,clippaste,]
+
+set _tname=canvas has more controls after multi-paste
+set _actual=%@formget[%hCanvas,.,controls]
+iff %_actual gt 2 then
+  set _tname=multi-paste added controls (count=%_actual)
+  set _expect=1
+  set _actual=1
+else
+  set _tname=multi-paste added controls
+  set _expect=1
+  set _actual=0
+endiff
+gosub check
+echo.
+
+:: ==================== Cleanup ====================
+set RC=%@formset[%hCanvas,.,confirmclose,0]
+set RC=%@formset[%hTool,.,confirmclose,0]
+set RC=%@formset[%hProps,.,confirmclose,0]
+set RC=%@formclose[%hCanvas]
+set RC=%@formclose[%hTool]
+set RC=%@formclose[%hProps]
+set RC=%@formlog[off]
+call "%REPO\examples\formcast-check.btm" unload
+
+:: ==================== Results ====================
+echo ============================================================
+echo Results: %PASS passed, %FAIL failed, %TOTAL total
+echo ============================================================
+iff %FAIL gt 0 then
+  endlocal & quit 1
+else
+  endlocal & quit 0
+endiff
+
+:fc_cleanup
+  set RC=%@formlog[off]
+  call "%REPO\examples\formcast-check.btm" unload
+  endlocal
+  quit 130

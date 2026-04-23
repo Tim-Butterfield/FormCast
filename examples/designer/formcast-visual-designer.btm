@@ -1,0 +1,1172 @@
+@echo off
+setlocal
+::
+:: formcast-visual-designer.btm
+:: ============================
+::
+:: A visual form designer built with FormCast primitives.
+:: Three windows loaded from JSONC templates:
+::   - Toolbox (left): tabbed control palette + menu bar
+::   - Canvas (center): the form being designed (design_mode=1)
+::   - Properties (right): PropertyGrid + Document Outline tree
+::
+:: The Toolbox and Properties windows are loaded from templates
+:: in the templates/ directory, demonstrating the @FORMLOAD
+:: workflow that FormCast users would use in their own BTMs.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call formcast-visual-designer.btm
+::
+
+:: /app = standalone mode: hide TCC console immediately
+if "%1" == "/app" window /hide
+
+:: Load the plugin.
+call "%_batchpath\..\formcast-check.btm" load
+
+:: /app: reinforce hide via plugin (handles edge cases)
+if "%1" == "/app" set RC=%@formconsole[hide]
+
+:: Debug logging (uncomment the block below when diagnosing designer
+:: issues; disabled by default so normal runs do not leave a log file
+:: next to this script). If FORMCAST_LOG is set, the log goes there;
+:: otherwise it lands in this script's directory as formcast.log.
+:: iff defined FORMCAST_LOG then
+::   set _logpath=%FORMCAST_LOG
+:: else
+::   set _logpath=%_batchpath\formcast.log
+:: endiff
+:: set RC=%@formlog[debug,%_logpath]
+
+:: State variables
+set CTRL_NUM=0
+set NEXT_X=20
+set NEXT_Y=20
+set LAST_SEL=
+set _action=
+set _dirty=0
+set _filename=untitled
+set _filepath=
+
+::
+:: ==================== Load from templates ====================
+::
+
+:: Canvas is created fresh (not from template -- it's the user's form)
+set hCanvas=%@formopen[form,untitled,330,80,500,420]
+set RC=%@formset[%hCanvas,.,title,Canvas - untitled]
+set RC=%@formset[%hCanvas,.,design_mode,1]
+
+:: Toolbox loaded from template
+set hTool=%@formload[%_batchpath\templates\toolbox.jsonc]
+iff "%hTool" == "" then
+  echo ERROR: Failed to load toolbox template.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+iff "%1" == "/app" then
+  set RC=%@formset[%hTool,.,showintaskbar,1]
+  set RC=%@formset[%hTool,.,title,FormCast Designer]
+endiff
+if exist "%_batchpath\designer.ico" set RC=%@formset[%hTool,.,icon,%_batchpath\designer.ico]
+:: Properties panel loaded from template
+set hProps=%@formload[%_batchpath\templates\properties.jsonc]
+iff "%hProps" == "" then
+  echo ERROR: Failed to load properties template.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+:: Prevent WinForms from closing windows before the BTM can
+:: prompt to save. The "closing" event lets us intercept.
+set RC=%@formset[%hCanvas,.,confirmclose,1]
+set RC=%@formset[%hTool,.,confirmclose,1]
+set RC=%@formset[%hProps,.,confirmclose,1]
+
+:: Show all three windows
+set RC=%@formshow[%hCanvas]
+set RC=%@formshow[%hTool]
+set RC=%@formshow[%hProps]
+set RC=%@formfocus[%hTool]
+
+:: In /app mode, make Canvas and Properties owned by Toolbox
+:: so all three activate together from the taskbar.
+iff "%1" == "/app" then
+  set RC=%@formset[%hCanvas,.,owner,%hTool]
+  set RC=%@formset[%hProps,.,owner,%hTool]
+endiff
+
+:: Attach context menu from toolbox to canvas
+set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+
+:: Bind PropertyGrid to form properties initially
+gosub bind_props_to_form
+
+:: Tooltips for toolbar buttons
+set RC=%@formset[%hTool,tbNew,tooltip,New Canvas (Ctrl+N)]
+set RC=%@formset[%hTool,tbOpen,tooltip,Open Template (Ctrl+O)]
+set RC=%@formset[%hTool,tbSave,tooltip,Save Template (Ctrl+S)]
+set RC=%@formset[%hTool,tbUndo,tooltip,Undo (Ctrl+Z)]
+set RC=%@formset[%hTool,tbRedo,tooltip,Redo (Ctrl+Y)]
+set RC=%@formset[%hTool,tbCut,tooltip,Cut (Ctrl+X)]
+set RC=%@formset[%hTool,tbCopy,tooltip,Copy (Ctrl+C)]
+set RC=%@formset[%hTool,tbPaste,tooltip,Paste (Ctrl+V)]
+set RC=%@formset[%hTool,tbDelete,tooltip,Delete (Del)]
+set RC=%@formset[%hTool,tbFront,tooltip,Bring to Front]
+set RC=%@formset[%hTool,tbBack,tooltip,Send to Back]
+set RC=%@formset[%hTool,tbAlignL,tooltip,Align Left]
+set RC=%@formset[%hTool,tbAlignR,tooltip,Align Right]
+set RC=%@formset[%hTool,tbAlignT,tooltip,Align Top]
+set RC=%@formset[%hTool,tbAlignB,tooltip,Align Bottom]
+set RC=%@formset[%hTool,tbAlignHC,tooltip,Align Horizontal Center]
+set RC=%@formset[%hTool,tbAlignVC,tooltip,Align Vertical Center]
+set RC=%@formset[%hTool,tbDistH,tooltip,Distribute Horizontally]
+set RC=%@formset[%hTool,tbDistV,tooltip,Distribute Vertically]
+set RC=%@formset[%hTool,tbSameW,tooltip,Same Width]
+set RC=%@formset[%hTool,tbSameH,tooltip,Same Height]
+set RC=%@formset[%hTool,tbSameS,tooltip,Same Size]
+
+:: Tooltips for All tab (icon-only buttons need descriptions)
+set RC=%@formset[%hTool,taLabel,tooltip,Label - Static text display]
+set RC=%@formset[%hTool,taEdit,tooltip,Edit - Single-line text input]
+set RC=%@formset[%hTool,taButton,tooltip,Button - Clickable action trigger]
+set RC=%@formset[%hTool,taCheckbox,tooltip,Checkbox - On/off toggle with checkmark]
+set RC=%@formset[%hTool,taRadio,tooltip,Radio - One-of-many selection in a group]
+set RC=%@formset[%hTool,taToggle,tooltip,Toggle - Modern on/off slider switch]
+set RC=%@formset[%hTool,taLinkLbl,tooltip,LinkLabel - Clickable hyperlink text]
+set RC=%@formset[%hTool,taPicture,tooltip,PictureBox - Image display area]
+set RC=%@formset[%hTool,taProgress,tooltip,ProgressBar - Visual progress indicator]
+set RC=%@formset[%hTool,taMemo,tooltip,Memo - Multi-line text editor]
+set RC=%@formset[%hTool,taRichMemo,tooltip,RichMemo - Styled text with colors and fonts]
+set RC=%@formset[%hTool,taMasked,tooltip,MaskedEdit - Input with format mask like phone numbers]
+set RC=%@formset[%hTool,taListbox,tooltip,ListBox - Scrollable list of selectable items]
+set RC=%@formset[%hTool,taCombobox,tooltip,ComboBox - Dropdown list with optional text entry]
+set RC=%@formset[%hTool,taChkList,tooltip,CheckedListBox - List with checkboxes per item]
+set RC=%@formset[%hTool,taTreeView,tooltip,TreeView - Hierarchical expandable tree]
+set RC=%@formset[%hTool,taNumeric,tooltip,NumericUpDown - Number spinner with min/max]
+set RC=%@formset[%hTool,taDatePick,tooltip,DateTimePicker - Date and time selector]
+set RC=%@formset[%hTool,taTrackbar,tooltip,TrackBar - Sliding value selector]
+set RC=%@formset[%hTool,taPanel,tooltip,Panel - Invisible container for grouping controls]
+set RC=%@formset[%hTool,taGroupbox,tooltip,GroupBox - Titled border container for related controls]
+set RC=%@formset[%hTool,taTabCtrl,tooltip,TabControl - Tabbed pages for organizing content]
+set RC=%@formset[%hTool,taSplitter,tooltip,SplitContainer - Resizable two-pane layout]
+
+:: Tooltips for category tab buttons (have text but descriptions help)
+set RC=%@formset[%hTool,tLabel,tooltip,Static text display]
+set RC=%@formset[%hTool,tEdit,tooltip,Single-line text input]
+set RC=%@formset[%hTool,tButton,tooltip,Clickable action trigger]
+set RC=%@formset[%hTool,tCheckbox,tooltip,On/off toggle with checkmark]
+set RC=%@formset[%hTool,tRadio,tooltip,One-of-many selection in a group]
+set RC=%@formset[%hTool,tToggle,tooltip,Modern on/off slider switch]
+set RC=%@formset[%hTool,tLinkLbl,tooltip,Clickable hyperlink text]
+set RC=%@formset[%hTool,tPicture,tooltip,Image display area]
+set RC=%@formset[%hTool,tProgress,tooltip,Visual progress indicator]
+set RC=%@formset[%hTool,tMemo,tooltip,Multi-line text editor]
+set RC=%@formset[%hTool,tRichMemo,tooltip,Styled text with colors and fonts]
+set RC=%@formset[%hTool,tMasked,tooltip,Input with format mask like phone numbers]
+set RC=%@formset[%hTool,tListbox,tooltip,Scrollable list of selectable items]
+set RC=%@formset[%hTool,tCombobox,tooltip,Dropdown list with optional text entry]
+set RC=%@formset[%hTool,tChkList,tooltip,List with checkboxes per item]
+set RC=%@formset[%hTool,tTreeView,tooltip,Hierarchical expandable tree]
+set RC=%@formset[%hTool,tNumeric,tooltip,Number spinner with min/max]
+set RC=%@formset[%hTool,tDatePick,tooltip,Date and time selector]
+set RC=%@formset[%hTool,tTrackbar,tooltip,Sliding value selector]
+set RC=%@formset[%hTool,tPanel,tooltip,Invisible container for grouping controls]
+set RC=%@formset[%hTool,tGroupbox,tooltip,Titled border container for related controls]
+set RC=%@formset[%hTool,tTabCtrl,tooltip,Tabbed pages for organizing content]
+set RC=%@formset[%hTool,tSplitter,tooltip,Resizable two-pane layout]
+
+:: ==================== Main Event Loop ====================
+
+:main_loop
+  set _action=
+
+  :: ---- Toolbox events ----
+  do ev in /p formevents %hTool
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "closing" set _action=exit
+    if "%_kind" != "click" iterate
+    switch %_ctrl
+      :: Toolbox control buttons (t* = category tabs, ta* = All tab)
+      case tLabel .or. taLabel
+        gosub add_LABEL
+      case tEdit .or. taEdit
+        gosub add_EDIT
+      case tButton .or. taButton
+        gosub add_BUTTON
+      case tCheckbox .or. taCheckbox
+        gosub add_CHECKBOX
+      case tRadio .or. taRadio
+        gosub add_RADIO
+      case tPanel .or. taPanel
+        gosub add_PANEL
+      case tListbox .or. taListbox
+        gosub add_LISTBOX
+      case tCombobox .or. taCombobox
+        gosub add_COMBOBOX
+      case tMemo .or. taMemo
+        gosub add_MEMO
+      case tGroupbox .or. taGroupbox
+        gosub add_GROUPBOX
+      case tProgress .or. taProgress
+        gosub add_PROGRESSBAR
+      case tPicture .or. taPicture
+        gosub add_PICTUREBOX
+      case tToggle .or. taToggle
+        gosub add_TOGGLE
+      case tNumeric .or. taNumeric
+        gosub add_NUMERICUPDOWN
+      case tDatePick .or. taDatePick
+        gosub add_DATETIMEPICKER
+      case tTrackbar .or. taTrackbar
+        gosub add_TRACKBAR
+      case tTreeView .or. taTreeView
+        gosub add_TREEVIEW
+      case tChkList .or. taChkList
+        gosub add_CHECKEDLISTBOX
+      case tLinkLbl .or. taLinkLbl
+        gosub add_LINKLABEL
+      case tRichMemo .or. taRichMemo
+        gosub add_RICHMEMO
+      case tMasked .or. taMasked
+        gosub add_MASKEDTEXTBOX
+      case tTabCtrl .or. taTabCtrl
+        gosub add_TABCONTROL
+      case tSplitter .or. taSplitter
+        gosub add_SPLITCONTAINER
+      :: File actions (toolbar + menu)
+      case tbNew .or. mnuNew
+        set _action=new
+      case tbOpen .or. mnuOpen
+        set _action=open
+      case tbSave .or. mnuSave
+        set _action=save
+      case mnuSaveAs
+        set _action=saveas
+      case mnuExit
+        set _action=exit
+      :: Edit actions (toolbar + menu + context)
+      case tbUndo .or. mnuUndo
+        set _action=undo
+      case tbRedo .or. mnuRedo
+        set _action=redo
+      case tbCut .or. mnuCut .or. ctxCut
+        set _action=cut
+      case tbCopy .or. mnuCopy .or. ctxCopy
+        set _action=copy
+      case tbPaste .or. mnuPaste .or. ctxPaste
+        set _action=paste
+      case tbDelete .or. mnuDelete .or. ctxDelete
+        set _action=delete
+      :: Order (toolbar + menu + context)
+      case tbFront .or. mnuFront .or. ctxFront
+        set _action=front
+      case tbBack .or. mnuBack .or. ctxBack
+        set _action=back
+      :: Align (toolbar + menu + context)
+      case tbAlignL .or. mnuAlignL .or. ctxAlignL
+        set _action=align_left
+      case tbAlignR .or. mnuAlignR .or. ctxAlignR
+        set _action=align_right
+      case tbAlignT .or. mnuAlignT .or. ctxAlignT
+        set _action=align_top
+      case tbAlignB .or. mnuAlignB .or. ctxAlignB
+        set _action=align_bottom
+      case tbAlignHC .or. mnuAlignHC .or. ctxAlignHC
+        set _action=align_hcenter
+      case tbAlignVC .or. mnuAlignVC .or. ctxAlignVC
+        set _action=align_vcenter
+      :: Layout (toolbar + menu + context)
+      case tbDistH .or. mnuDistH .or. ctxDistH
+        set _action=dist_h
+      case tbDistV .or. mnuDistV .or. ctxDistV
+        set _action=dist_v
+      case tbSameW .or. mnuSameW .or. ctxSameW
+        set _action=same_width
+      case tbSameH .or. mnuSameH .or. ctxSameH
+        set _action=same_height
+      case tbSameS .or. mnuSameS .or. ctxSameS
+        set _action=same_size
+      :: View menu
+      case mnuShowProps
+        set _action=showprops
+      case mnuShowCanvas
+        set _action=showcanvas
+      case mnuGridOff
+        set _action=grid_0
+      case mnuGrid4
+        set _action=grid_4
+      case mnuGrid8
+        set _action=grid_8
+      case mnuGrid16
+        set _action=grid_16
+      :: Help menu
+      case mnuAbout
+        set _action=about
+    endswitch
+  enddo
+
+  :: ---- Canvas events (closing + keyboard shortcuts) ----
+  do ev in /p formevents %hCanvas
+    set _kind=%@word[1,%ev]
+    set _data=%@word[3,%ev]
+    if "%_kind" == "closing" set _action=exit
+    :: Keyboard shortcuts: keydown data = keycode:shift:ctrl:alt
+    iff "%_kind" == "keydown" then
+      :: Parse keycode:shift:ctrl:alt -- extract fields by colon
+      set _key=%@field[":",0,%_data]
+      set _kctrl=%@field[":",2,%_data]
+      :: Ctrl+Z = Undo (key 90)
+      if "%_key" == "90" .and. "%_kctrl" == "1" set _action=undo
+      :: Ctrl+Y = Redo (key 89)
+      if "%_key" == "89" .and. "%_kctrl" == "1" set _action=redo
+      :: Ctrl+C = Copy (key 67)
+      if "%_key" == "67" .and. "%_kctrl" == "1" set _action=copy
+      :: Ctrl+X = Cut (key 88)
+      if "%_key" == "88" .and. "%_kctrl" == "1" set _action=cut
+      :: Ctrl+V = Paste (key 86)
+      if "%_key" == "86" .and. "%_kctrl" == "1" set _action=paste
+      :: Delete key (key 46)
+      if "%_key" == "46" set _action=delete
+      :: Escape = Deselect (key 27)
+      if "%_key" == "27" set _action=deselect
+      :: Ctrl+S = Save (key 83)
+      if "%_key" == "83" .and. "%_kctrl" == "1" set _action=save
+      :: Ctrl+N = New (key 78)
+      if "%_key" == "78" .and. "%_kctrl" == "1" set _action=new
+      :: Ctrl+O = Open (key 79)
+      if "%_key" == "79" .and. "%_kctrl" == "1" set _action=open
+      :: Arrow keys = nudge selected control(s)
+      :: Left=37, Up=38, Right=39, Down=40
+      if "%_key" == "37" set _action=nudge_left
+      if "%_key" == "38" set _action=nudge_up
+      if "%_key" == "39" set _action=nudge_right
+      if "%_key" == "40" set _action=nudge_down
+    endiff
+  enddo
+
+  :: ---- Properties events (closing just hides the panel) ----
+  :: Don't override exit -- owner chain fires closing on owned forms too
+  do ev in /p formevents %hProps
+    set _kind=%@word[1,%ev]
+    if "%_kind" == "closing" .and. "%_action" != "exit" set _action=hideprops
+  enddo
+
+  :: ---- Check for toolbox drag-drop onto canvas ----
+  set _dropType=%@formget[%hCanvas,.,_drop_type]
+  iff "%_dropType" != "" then
+    set _dropX=%@formget[%hCanvas,.,_drop_x]
+    set _dropY=%@formget[%hCanvas,.,_drop_y]
+    :: Clear the drop data
+    set RC=%@formset[%hCanvas,.,_drop_type,]
+    set _action=drop
+  endiff
+
+  :: ---- Dispatch deferred actions ----
+  if "%_action" == "" goto :poll_selection
+  if "%_action" == "exit" goto on_exit
+  :: Nudge handles before switch (high frequency, skip switch overhead)
+  iff "%_action" == "nudge_left" .or. "%_action" == "nudge_right" .or. "%_action" == "nudge_up" .or. "%_action" == "nudge_down" then
+    gosub do_nudge
+    goto :poll_selection
+  endiff
+  switch %_action
+    case new
+      gosub on_new
+    case open
+      gosub on_open
+    case save
+      gosub on_save
+    case saveas
+      gosub on_saveas
+    case delete
+      gosub on_delete
+    case front
+      gosub on_front
+    case back
+      gosub on_back
+    case deselect
+      set RC=%@formset[%hCanvas,.,selected,]
+      set RC=%@formset[%hTool,sb/msg,text,Deselected]
+    case undo
+      set RC=%@formset[%hCanvas,.,undo,]
+      set RC=%@formset[%hCanvas,.,confirmclose,1]
+      set RC=%@formset[%hCanvas,.,design_mode,1]
+      set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+      gosub mark_dirty
+      gosub update_outline
+      set RC=%@formset[%hTool,sb/msg,text,Undo]
+    case redo
+      set RC=%@formset[%hCanvas,.,redo,]
+      set RC=%@formset[%hCanvas,.,confirmclose,1]
+      set RC=%@formset[%hCanvas,.,design_mode,1]
+      set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+      gosub mark_dirty
+      gosub update_outline
+      set RC=%@formset[%hTool,sb/msg,text,Redo]
+    case copy
+      set _selcount=%@formget[%hCanvas,.,selectioncount]
+      iff "%_selcount" != "" .and. %_selcount gt 1 then
+        :: Multi-select: copy all selected (empty value)
+        set RC=%@formset[%hCanvas,.,clipcopy,]
+        set RC=%@formset[%hTool,sb/msg,text,Copied %_selcount controls]
+      else
+        set _sel=%@formget[%hCanvas,.,selected]
+        if "%_sel" == "" set _sel=%LAST_SEL
+        if "%_sel" != "" set RC=%@formset[%hCanvas,.,clipcopy,%_sel]
+        set RC=%@formset[%hTool,sb/msg,text,Copied %_sel]
+      endiff
+    case cut
+      set _selcount=%@formget[%hCanvas,.,selectioncount]
+      iff "%_selcount" != "" .and. %_selcount gt 1 then
+        :: Multi-select: cut all selected (empty value)
+        set RC=%@formset[%hCanvas,.,snapshot,]
+        set RC=%@formset[%hCanvas,.,clipcut,]
+        gosub mark_dirty
+        set RC=%@formset[%hTool,sb/msg,text,Cut %_selcount controls]
+      else
+        set _sel=%@formget[%hCanvas,.,selected]
+        if "%_sel" == "" set _sel=%LAST_SEL
+        iff "%_sel" != "" then
+          set RC=%@formset[%hCanvas,.,snapshot,]
+          set RC=%@formset[%hCanvas,.,clipcut,%_sel]
+          gosub mark_dirty
+        endiff
+        set RC=%@formset[%hTool,sb/msg,text,Cut %_sel]
+      endiff
+      gosub update_outline
+    case paste
+      set RC=%@formset[%hCanvas,.,snapshot,]
+      set RC=%@formset[%hCanvas,.,clippaste,]
+      gosub mark_dirty
+      gosub update_outline
+      set RC=%@formset[%hTool,sb/msg,text,Pasted]
+    case drop
+      set NEXT_X=%_dropX
+      set NEXT_Y=%_dropY
+      gosub add_%_dropType
+    case showprops
+      set RC=%@formshow[%hProps]
+      set RC=%@formset[%hTool,sb/msg,text,Properties panel shown]
+    case showcanvas
+      set RC=%@formshow[%hCanvas]
+      set RC=%@formset[%hTool,sb/msg,text,Canvas shown]
+    case grid_0 .or. grid_4 .or. grid_8 .or. grid_16
+      gosub set_grid
+    case nudge_left .or. nudge_right .or. nudge_up .or. nudge_down
+      gosub do_nudge
+    case align_left .or. align_right .or. align_top .or. align_bottom .or. align_hcenter .or. align_vcenter
+      gosub do_align
+    case dist_h .or. dist_v
+      gosub do_distribute
+    case same_width .or. same_height .or. same_size
+      gosub do_samesize
+    case about
+      set RC=%@formtaskdialog[About FormCast,FormCast Visual Designer v%@formversion[] -- a form designer for TCC batch scripts. 39 control types with 216 stock icons.,ok,info]
+    case hideprops
+      set RC=%@formset[%hProps,.,visible,0]
+      set RC=%@formset[%hTool,sb/msg,text,Properties hidden (View > Properties to reopen)]
+  endswitch
+:poll_selection
+
+  :: ---- Poll selection changes ----
+  set SEL=%@formget[%hCanvas,.,selected]
+  iff "%SEL" != "%LAST_SEL" then
+    set LAST_SEL=%SEL
+    gosub on_selection_changed
+  endiff
+
+  :: ---- Check for move/resize commits (undo + dirty) ----
+  set _bc=%@formget[%hCanvas,.,_bounds_changed]
+  iff "%_bc" == "1" then
+    set RC=%@formset[%hCanvas,.,_bounds_changed,]
+    set RC=%@formset[%hCanvas,.,snapshot,]
+    gosub mark_dirty
+  endiff
+
+  delay /m 150
+  goto main_loop
+
+:: ==================== Selection Changed ====================
+
+:on_selection_changed
+  iff "%SEL" == "" then
+    gosub bind_props_to_form
+    set RC=%@formset[%hTool,sb/msg,text,Form selected]
+  else
+    set RC=%@formset[%hProps,propGrid,designtarget,%hCanvas:%SEL]
+    set RC=%@formset[%hTool,sb/msg,text,Selected: %SEL]
+  endiff
+  gosub update_outline
+return
+
+:bind_props_to_form
+  set RC=%@formset[%hProps,propGrid,designtarget,%hCanvas:.]
+return
+
+:update_outline
+  set RC=%@formset[%hProps,outline,text,]
+  set _nctl=%@formget[%hCanvas,.,controls]
+  set RC=%@formset[%hProps,outline,addnode,Canvas:Canvas (%_nctl controls)]
+  iff "%_nctl" != "0" .and. "%_nctl" != "" then
+    set _json=%@formget[%hCanvas,.,controllist]
+    set _jrc=%@jsoninput[%_json]
+    set /a _oidx=1
+    do while %_oidx le %_nctl
+      set _cid=%@unquote[%@jsonxpath[/json/items/[%_oidx]/id/]]
+      set _ctype=%@unquote[%@jsonxpath[/json/items/[%_oidx]/type/]]
+      set RC=%@formset[%hProps,outline,addnode,Canvas/%[_cid]:%[_cid] (%[_ctype])]
+      set /a _oidx=%_oidx + 1
+    enddo
+    set _jrc=%@jsonreset[]
+    set RC=%@formset[%hProps,outline,expandall,]
+  endiff
+return
+
+:: ==================== Toolbox Handlers ====================
+
+:add_LABEL
+  set _addType=Label
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],LABEL,%NEXT_X,%NEXT_Y,100,20,%_addType]
+  gosub after_add
+return
+
+:add_EDIT
+  set _addType=Edit
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],EDIT,%NEXT_X,%NEXT_Y,150,24,]
+  gosub after_add
+return
+
+:add_BUTTON
+  set _addType=Button
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],BUTTON,%NEXT_X,%NEXT_Y,80,28,%_addType]
+  gosub after_add
+return
+
+:add_CHECKBOX
+  set _addType=Checkbox
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],CHECKBOX,%NEXT_X,%NEXT_Y,120,20,%_addType]
+  gosub after_add
+return
+
+:add_RADIO
+  set _addType=Radio
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],RADIO,%NEXT_X,%NEXT_Y,100,20,%_addType]
+  gosub after_add
+return
+
+:add_PANEL
+  set _addType=Panel
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],PANEL,%NEXT_X,%NEXT_Y,200,150,]
+  gosub after_add
+return
+
+:add_LISTBOX
+  set _addType=Listbox
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],LISTBOX,%NEXT_X,%NEXT_Y,150,120,]
+  gosub after_add
+return
+
+:add_COMBOBOX
+  set _addType=Combobox
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],COMBOBOX,%NEXT_X,%NEXT_Y,150,24,]
+  gosub after_add
+return
+
+:add_MEMO
+  set _addType=Memo
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],MEMO,%NEXT_X,%NEXT_Y,200,100,]
+  gosub after_add
+return
+
+:add_GROUPBOX
+  set _addType=GroupBox
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],GROUPBOX,%NEXT_X,%NEXT_Y,200,100,%_addType]
+  gosub after_add
+return
+
+:add_PROGRESSBAR
+  set _addType=Progress
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],PROGRESSBAR,%NEXT_X,%NEXT_Y,200,24,]
+  gosub after_add
+return
+
+:add_PICTUREBOX
+  set _addType=Picture
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],PICTUREBOX,%NEXT_X,%NEXT_Y,120,90,]
+  gosub after_add
+return
+
+:add_TOGGLE
+  set _addType=Toggle
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],TOGGLE,%NEXT_X,%NEXT_Y,54,28,]
+  gosub after_add
+return
+
+:add_NUMERICUPDOWN
+  set _addType=Numeric
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],NUMERICUPDOWN,%NEXT_X,%NEXT_Y,120,28,]
+  gosub after_add
+return
+
+:add_DATETIMEPICKER
+  set _addType=DatePicker
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],DATETIMEPICKER,%NEXT_X,%NEXT_Y,200,28,]
+  gosub after_add
+return
+
+:add_TRACKBAR
+  set _addType=TrackBar
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],TRACKBAR,%NEXT_X,%NEXT_Y,200,45,]
+  gosub after_add
+return
+
+:add_TREEVIEW
+  set _addType=TreeView
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],TREEVIEW,%NEXT_X,%NEXT_Y,180,120,]
+  gosub after_add
+return
+
+:add_CHECKEDLISTBOX
+  set _addType=ChkList
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],CHECKEDLISTBOX,%NEXT_X,%NEXT_Y,150,100,]
+  gosub after_add
+return
+
+:add_LINKLABEL
+  set _addType=LinkLabel
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],LINKLABEL,%NEXT_X,%NEXT_Y,120,20,%_addType]
+  gosub after_add
+return
+
+:add_RICHMEMO
+  set _addType=RichMemo
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],RICHMEMO,%NEXT_X,%NEXT_Y,200,120,]
+  gosub after_add
+return
+
+:add_MASKEDTEXTBOX
+  set _addType=MaskEdit
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],MASKEDTEXTBOX,%NEXT_X,%NEXT_Y,150,24,]
+  gosub after_add
+return
+
+:add_TABCONTROL
+  set _addType=TabCtrl
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],TABCONTROL,%NEXT_X,%NEXT_Y,300,200,]
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID]/page1,TABPAGE,0,0,0,0,Page 1]
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID]/page2,TABPAGE,0,0,0,0,Page 2]
+  gosub after_add
+return
+
+:add_SPLITCONTAINER
+  set _addType=Splitter
+  gosub resolve_parent
+  gosub next_id
+  set RC=%@formadd[%hCanvas,%[ADD_PATH]%[NEW_ID],SPLITCONTAINER,%NEXT_X,%NEXT_Y,300,150,]
+  gosub after_add
+return
+
+:: ==================== Dirty Tracking ====================
+
+:mark_dirty
+  set _dirty=1
+  gosub update_title
+return
+
+:mark_clean
+  set _dirty=0
+  gosub update_title
+return
+
+:update_title
+  iff %_dirty == 1 then
+    set RC=%@formset[%hCanvas,.,title,Canvas - %_filename *]
+  else
+    set RC=%@formset[%hCanvas,.,title,Canvas - %_filename]
+  endiff
+return
+
+:check_dirty
+  :: Prompt to save if dirty. Sets _save_result:
+  ::   0 = saved or not dirty, proceed
+  ::   1 = user chose No (discard), proceed
+  ::   2 = user chose Cancel, abort the operation
+  set _save_result=0
+  if %_dirty == 0 return
+  set _save_result=%@formtaskdialog[Save changes?,Save changes to %_filename before continuing?,yesnocancel,question]
+  iff "%_save_result" == "0" then
+    gosub on_save
+    set _save_result=0
+  elseiff "%_save_result" == "1" then
+    set _save_result=1
+  else
+    set _save_result=2
+  endiff
+return
+
+:: ==================== Utility Subroutines ====================
+
+:next_id
+  :: Generate a type-based ID like Label1, Edit2, Button1, etc.
+  :: _addType must be set by the caller before gosub next_id.
+  :: Use %[var] bracket syntax to avoid %_addType%_typeNum being
+  :: parsed as %_addType% + literal "_typeNum".
+  set _typeNum=1
+  :next_id_check
+    set NEW_ID=%[_addType]%[_typeNum]
+    set _exists=%@formget[%hCanvas,%NEW_ID,type]
+    if "%_exists" == "" return
+    set /a _typeNum=%_typeNum + 1
+    goto next_id_check
+
+:resolve_parent
+  set ADD_PARENT=
+  set ADD_PATH=
+  set SEL=%@formget[%hCanvas,.,selected]
+  if "%SEL" == "" return
+  set SEL_TYPE=%@formget[%hCanvas,%SEL,type]
+  set SEL_UPPER=%@upper[%SEL_TYPE]
+  iff "%SEL_UPPER" == "PANEL" .or. "%SEL_UPPER" == "GROUPBOX" .or. "%SEL_UPPER" == "TABPAGE" .or. "%SEL_UPPER" == "FLOWPANEL" .or. "%SEL_UPPER" == "TABLEPANEL" .or. "%SEL_UPPER" == "SPLITCONTAINER" then
+    set ADD_PARENT=%SEL
+    set ADD_PATH=%SEL/
+    set NEXT_X=10
+    set NEXT_Y=10
+  endiff
+return
+
+:after_add
+  :: Snapshot for undo + mark dirty
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  gosub mark_dirty
+  set /a NEXT_X=%NEXT_X + 15
+  set /a NEXT_Y=%NEXT_Y + 15
+  iff %NEXT_Y GT 300 then
+    set NEXT_X=20
+    set NEXT_Y=20
+  endiff
+  iff "%ADD_PARENT" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Added %NEW_ID]
+  else
+    set RC=%@formset[%hTool,sb/msg,text,Added %NEW_ID inside %ADD_PARENT]
+  endiff
+  gosub update_outline
+return
+
+:: ==================== Menu Handlers ====================
+
+:on_new
+  gosub check_dirty
+  if %_save_result == 2 return
+  set RC=%@formclose[%hCanvas]
+  set CTRL_NUM=0
+  set NEXT_X=20
+  set NEXT_Y=20
+  set LAST_SEL=
+  set _filename=untitled
+  set _filepath=
+  set hCanvas=%@formopen[form,untitled,330,80,500,420]
+  set RC=%@formset[%hCanvas,.,design_mode,1]
+  set RC=%@formshow[%hCanvas]
+  set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+  gosub mark_clean
+  gosub bind_props_to_form
+  gosub update_outline
+  set RC=%@formset[%hTool,sb/msg,text,New canvas]
+return
+
+:on_open
+  gosub check_dirty
+  if %_save_result == 2 return
+  set file=%@formopendialog[Open template,JSONC templates:*.jsonc:All files:*.*]
+  if "%file" == "" return
+  set RC=%@formclose[%hCanvas]
+  set hCanvas=%@formload[%@truename[%file]]
+  iff "%hCanvas" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Failed to load: %file]
+    gosub on_new
+    return
+  endiff
+  set RC=%@formset[%hCanvas,.,design_mode,1]
+  set RC=%@formshow[%hCanvas]
+  set RC=%@formset[%hCanvas,.,runtimecontextmenu,%hTool:ctxMenu]
+  gosub fix_id_counter
+  set LAST_SEL=
+  set _filepath=%@truename[%file]
+  set _filename=%@filename[%file]
+  gosub mark_clean
+  gosub bind_props_to_form
+  gosub update_outline
+  set RC=%@formset[%hTool,sb/msg,text,Loaded: %_filename]
+return
+
+:fix_id_counter
+  set _max=0
+  set _probe=1
+  :fix_loop
+    set _test=%@formget[%hCanvas,ctrl%_probe,type]
+    iff "%_test" != "" then
+      set _max=%_probe
+      set /a _probe=%_probe + 1
+      goto fix_loop
+    endiff
+  set CTRL_NUM=%_max
+return
+
+:on_save
+  :: Quick save if filepath is known, otherwise fall through to Save As
+  iff "%_filepath" != "" then
+    set RC=%@formset[%hCanvas,.,snapshot,]
+    set RC=%@formset[%hCanvas,.,design_mode,0]
+    set RC=%@formsave[%hCanvas,%_filepath]
+    set RC=%@formset[%hCanvas,.,design_mode,1]
+    iff "%RC" == "0" then
+      gosub mark_clean
+      set RC=%@formset[%hTool,sb/msg,text,Saved: %_filepath]
+    else
+      set RC=%@formset[%hTool,sb/msg,text,Save failed: rc=%RC]
+    endiff
+    return
+  endiff
+:on_saveas
+  set file=%@formsavedialog[Save template,JSONC templates:*.jsonc:All files:*.*]
+  if "%file" == "" return
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  set RC=%@formset[%hCanvas,.,design_mode,0]
+  set RC=%@formsave[%hCanvas,%file]
+  set RC=%@formset[%hCanvas,.,design_mode,1]
+  iff "%RC" == "0" then
+    set _filepath=%@truename[%file]
+    set _filename=%@filename[%file]
+    gosub mark_clean
+    set RC=%@formset[%hTool,sb/msg,text,Saved: %file]
+  else
+    set RC=%@formset[%hTool,sb/msg,text,Save failed: rc=%RC]
+  endiff
+return
+
+:set_grid
+  set _gsz=%@replace[grid_,,%_action]
+  set RC=%@formset[%hCanvas,.,gridsize,%_gsz]
+  iff %_gsz == 0 then
+    set RC=%@formset[%hTool,sb/msg,text,Grid off (no snap)]
+  else
+    set RC=%@formset[%hTool,sb/msg,text,Grid size: %_gsz px]
+  endiff
+return
+
+:: ---- Nudge selected controls with arrow keys ----
+:do_nudge
+  set _sel=%@formget[%hCanvas,.,selected]
+  if "%_sel" == "" set _sel=%LAST_SEL
+  if "%_sel" == "" return
+  :: Determine step size: grid size if on, 1px if off
+  set _gsz=%@formget[%hCanvas,.,gridsize]
+  if "%_gsz" == "" set _gsz=8
+  if %_gsz lt 1 set _gsz=1
+  :: Determine delta
+  set _dx=0
+  set _dy=0
+  if "%_action" == "nudge_left" set /a _dx=0 - %_gsz
+  if "%_action" == "nudge_right" set _dx=%_gsz
+  if "%_action" == "nudge_up" set /a _dy=0 - %_gsz
+  if "%_action" == "nudge_down" set _dy=%_gsz
+  :: Apply to all selected controls
+  set _allsel=%@formget[%hCanvas,.,selectedall]
+  set _selcount=%@formget[%hCanvas,.,selectioncount]
+  if "%_selcount" == "" set _selcount=1
+  iff %_selcount gt 1 then
+    set /a _nidx=0
+    do while %_nidx lt %_selcount
+      set _nid=%@word[%_nidx,%_allsel]
+      set RC=%@formset[%hCanvas,%_nid,moveby,%_dx:%_dy]
+      set /a _nidx=%_nidx + 1
+    enddo
+  else
+    set RC=%@formset[%hCanvas,%_sel,moveby,%_dx:%_dy]
+  endiff
+  set RC=%@formset[%hCanvas,.,refreshdesign,]
+  gosub mark_dirty
+return
+
+:on_delete
+  set _selcount=%@formget[%hCanvas,.,selectioncount]
+  iff "%_selcount" != "" .and. %_selcount gt 1 then
+    :: Multi-select delete
+    set _allsel=%@formget[%hCanvas,.,selectedall]
+    set RC=%@formset[%hCanvas,.,snapshot,]
+    set /a _didx=0
+    do while %_didx lt %_selcount
+      set _did=%@word[%_didx,%_allsel]
+      set RC=%@formset[%hCanvas,%_did,delete,]
+      set /a _didx=%_didx + 1
+    enddo
+    gosub mark_dirty
+    set LAST_SEL=
+    gosub bind_props_to_form
+    gosub update_outline
+    set RC=%@formset[%hTool,sb/msg,text,Deleted %_selcount controls]
+    return
+  endiff
+  set SEL=%@formget[%hCanvas,.,selected]
+  if "%SEL" == "" set SEL=%LAST_SEL
+  iff "%SEL" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Nothing selected]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  set RC=%@formset[%hCanvas,%SEL,delete,]
+  gosub mark_dirty
+  set LAST_SEL=
+  gosub bind_props_to_form
+  gosub update_outline
+  set RC=%@formset[%hTool,sb/msg,text,Deleted %SEL]
+return
+
+:do_align
+  set _sel=%@formget[%hCanvas,.,selected]
+  if "%_sel" == "" set _sel=%LAST_SEL
+  iff "%_sel" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Nothing selected]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  set _allsel=%@formget[%hCanvas,.,selectedall]
+  set _selcount=%@formget[%hCanvas,.,selectioncount]
+  if "%_selcount" == "" set _selcount=1
+  :: Get reference control bounds (first selected or canvas)
+  set _rx=%@formget[%hCanvas,%_sel,x]
+  set _ry=%@formget[%hCanvas,%_sel,y]
+  set _rw=%@formget[%hCanvas,%_sel,width]
+  set _rh=%@formget[%hCanvas,%_sel,height]
+  set _fw=%@formget[%hCanvas,.,width]
+  set _fh=%@formget[%hCanvas,.,height]
+  :: Single select: align to canvas edges
+  :: Multi-select: align all to the first selected control
+  set /a _aidx=0
+  do while %_aidx lt %_selcount
+    set _id=%@word[%_aidx,%_allsel]
+    set _cx=%@formget[%hCanvas,%_id,x]
+    set _cy=%@formget[%hCanvas,%_id,y]
+    set _cw=%@formget[%hCanvas,%_id,width]
+    set _ch=%@formget[%hCanvas,%_id,height]
+    iff "%_action" == "align_left" then
+      iff %_selcount gt 1 then
+        set RC=%@formset[%hCanvas,%_id,position,%_rx:%_cy]
+      else
+        set RC=%@formset[%hCanvas,%_id,position,0:%_cy]
+      endiff
+    elseiff "%_action" == "align_right" then
+      iff %_selcount gt 1 then
+        set /a _nx=%_rx + %_rw - %_cw
+        set RC=%@formset[%hCanvas,%_id,position,%_nx:%_cy]
+      else
+        set /a _nx=%_fw - %_cw
+        set RC=%@formset[%hCanvas,%_id,position,%_nx:%_cy]
+      endiff
+    elseiff "%_action" == "align_top" then
+      iff %_selcount gt 1 then
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:%_ry]
+      else
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:0]
+      endiff
+    elseiff "%_action" == "align_bottom" then
+      iff %_selcount gt 1 then
+        set /a _ny=%_ry + %_rh - %_ch
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:%_ny]
+      else
+        set /a _ny=%_fh - %_ch
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:%_ny]
+      endiff
+    elseiff "%_action" == "align_hcenter" then
+      iff %_selcount gt 1 then
+        set /a _nx=%_rx + (%_rw - %_cw) / 2
+        set RC=%@formset[%hCanvas,%_id,position,%_nx:%_cy]
+      else
+        set /a _nx=(%_fw - %_cw) / 2
+        set RC=%@formset[%hCanvas,%_id,position,%_nx:%_cy]
+      endiff
+    elseiff "%_action" == "align_vcenter" then
+      iff %_selcount gt 1 then
+        set /a _ny=%_ry + (%_rh - %_ch) / 2
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:%_ny]
+      else
+        set /a _ny=(%_fh - %_ch) / 2
+        set RC=%@formset[%hCanvas,%_id,position,%_cx:%_ny]
+      endiff
+    endiff
+    set /a _aidx=%_aidx + 1
+  enddo
+  set RC=%@formset[%hCanvas,.,refreshdesign,]
+  gosub mark_dirty
+  set RC=%@formset[%hTool,sb/msg,text,Aligned %@replace[align_,,%_action] (%_selcount control(s))]
+return
+
+:: ---- Distribute controls evenly ----
+:do_distribute
+  set _allsel=%@formget[%hCanvas,.,selectedall]
+  set _selcount=%@formget[%hCanvas,.,selectioncount]
+  iff "%_selcount" == "" .or. %_selcount lt 3 then
+    set RC=%@formset[%hTool,sb/msg,text,Distribute requires 3+ selected controls (Ctrl+click)]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  :: Get canvas size and calculate total control size
+  set _fw=%@formget[%hCanvas,.,width]
+  set _fh=%@formget[%hCanvas,.,height]
+  set /a _totalsize=0
+  set /a _didx=0
+  do while %_didx lt %_selcount
+    set _id=%@word[%_didx,%_allsel]
+    iff "%_action" == "dist_h" then
+      set /a _totalsize=%_totalsize + %@formget[%hCanvas,%_id,width]
+    else
+      set /a _totalsize=%_totalsize + %@formget[%hCanvas,%_id,height]
+    endiff
+    set /a _didx=%_didx + 1
+  enddo
+  :: Calculate equal gap between controls
+  iff "%_action" == "dist_h" then
+    set /a _avail=%_fw - %_totalsize
+  else
+    set /a _avail=%_fh - %_totalsize
+  endiff
+  set /a _gap=%_avail / %_selcount
+  if %_gap lt 4 set _gap=4
+  :: Half-gap margin at edges, full gap between controls
+  set /a _pos=%_gap / 2
+  set /a _didx=0
+  do while %_didx lt %_selcount
+    set _id=%@word[%_didx,%_allsel]
+    iff "%_action" == "dist_h" then
+      set _cy=%@formget[%hCanvas,%_id,y]
+      set _cw=%@formget[%hCanvas,%_id,width]
+      set RC=%@formset[%hCanvas,%_id,position,%_pos:%_cy]
+      set /a _pos=%_pos + %_cw + %_gap
+    else
+      set _cx=%@formget[%hCanvas,%_id,x]
+      set _ch=%@formget[%hCanvas,%_id,height]
+      set RC=%@formset[%hCanvas,%_id,position,%_cx:%_pos]
+      set /a _pos=%_pos + %_ch + %_gap
+    endiff
+    set /a _didx=%_didx + 1
+  enddo
+  set RC=%@formset[%hCanvas,.,refreshdesign,]
+  gosub mark_dirty
+  set RC=%@formset[%hTool,sb/msg,text,Distributed %_selcount controls %@replace[dist_,,%_action]]
+return
+
+:: ---- Make same width/height/size ----
+:do_samesize
+  set _sel=%@formget[%hCanvas,.,selected]
+  if "%_sel" == "" set _sel=%LAST_SEL
+  set _allsel=%@formget[%hCanvas,.,selectedall]
+  set _selcount=%@formget[%hCanvas,.,selectioncount]
+  iff "%_selcount" == "" .or. %_selcount lt 2 then
+    set RC=%@formset[%hTool,sb/msg,text,Make same size requires 2+ selected controls (Ctrl+click)]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,.,snapshot,]
+  :: Reference is the first selected control
+  set _rw=%@formget[%hCanvas,%_sel,width]
+  set _rh=%@formget[%hCanvas,%_sel,height]
+  set /a _sidx=0
+  do while %_sidx lt %_selcount
+    set _id=%@word[%_sidx,%_allsel]
+    iff "%_action" == "same_width" then
+      set _ch=%@formget[%hCanvas,%_id,height]
+      set RC=%@formset[%hCanvas,%_id,size,%_rw:%_ch]
+    elseiff "%_action" == "same_height" then
+      set _cw=%@formget[%hCanvas,%_id,width]
+      set RC=%@formset[%hCanvas,%_id,size,%_cw:%_rh]
+    elseiff "%_action" == "same_size" then
+      set RC=%@formset[%hCanvas,%_id,size,%_rw:%_rh]
+    endiff
+    set /a _sidx=%_sidx + 1
+  enddo
+  set RC=%@formset[%hCanvas,.,refreshdesign,]
+  gosub mark_dirty
+  set RC=%@formset[%hTool,sb/msg,text,Applied %@replace[same_,same ,%_action] to %_selcount controls]
+return
+
+:on_front
+  set SEL=%@formget[%hCanvas,.,selected]
+  if "%SEL" == "" set SEL=%LAST_SEL
+  iff "%SEL" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Nothing selected]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,%SEL,bringtofront,]
+  set RC=%@formset[%hTool,sb/msg,text,%SEL brought to front]
+return
+
+:on_back
+  set SEL=%@formget[%hCanvas,.,selected]
+  if "%SEL" == "" set SEL=%LAST_SEL
+  iff "%SEL" == "" then
+    set RC=%@formset[%hTool,sb/msg,text,Nothing selected]
+    return
+  endiff
+  set RC=%@formset[%hCanvas,%SEL,sendtoback,]
+  set RC=%@formset[%hTool,sb/msg,text,%SEL sent to back]
+return
+
+:on_exit
+  gosub check_dirty
+  if %_save_result == 2 goto main_loop
+  :: Disable confirmclose so @FORMCLOSE actually closes
+  set RC=%@formset[%hCanvas,.,confirmclose,0]
+  set RC=%@formset[%hTool,.,confirmclose,0]
+  set RC=%@formset[%hProps,.,confirmclose,0]
+  set RC=%@formclose[%hCanvas]
+  set RC=%@formclose[%hTool]
+  set RC=%@formclose[%hProps]
+  :: set RC=%@formlog[off]
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0

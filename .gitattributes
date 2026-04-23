@@ -1,0 +1,21 @@
+# FormCast is a Windows-only project (targets TCC v36+ on Windows). All
+# text files are stored and checked out as CRLF so every consumer and
+# every Windows-native parser (cmd.exe, powershell.exe, tcc.exe, older
+# Windows text editors) gets native line endings without conversion.
+# Aligns with the .editorconfig end_of_line = crlf policy.
+
+* text=auto eol=crlf
+
+# Explicit binary markers. Git auto-detects binary via NUL bytes, but
+# these extensions are unambiguous and benefit from being pinned.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.lib binary

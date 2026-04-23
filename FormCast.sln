@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCast", "src\FormCast\FormCast.csproj", "{8D5F8C2E-9F1A-4B6E-9C8B-2D1E3A4F5C6D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCast.Tests", "tests\FormCast.Tests\FormCast.Tests.csproj", "{A1B2C3D4-E5F6-4789-A012-3456789ABCDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormCast.Host", "src\FormCast.Host\FormCast.Host.csproj", "{B2C3D4E5-F6A7-4890-B123-456789ABCDEF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8D5F8C2E-9F1A-4B6E-9C8B-2D1E3A4F5C6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D5F8C2E-9F1A-4B6E-9C8B-2D1E3A4F5C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D5F8C2E-9F1A-4B6E-9C8B-2D1E3A4F5C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D5F8C2E-9F1A-4B6E-9C8B-2D1E3A4F5C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-4789-A012-3456789ABCDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-4789-A012-3456789ABCDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-4789-A012-3456789ABCDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-4789-A012-3456789ABCDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2C3D4E5-F6A7-4890-B123-456789ABCDEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2C3D4E5-F6A7-4890-B123-456789ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2C3D4E5-F6A7-4890-B123-456789ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2C3D4E5-F6A7-4890-B123-456789ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

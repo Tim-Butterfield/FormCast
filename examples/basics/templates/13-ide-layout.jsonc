@@ -1,0 +1,70 @@
+// 13-ide-layout.jsonc -- IDE-shaped form with nested PANELs
+// =========================================================
+//
+// Layout: toolbar (top), sidebar (left with LISTVIEW),
+// editor (center with MEMO), status bar (bottom).
+// Dynamic operations (addcolumn, additem, appendtext) stay in the BTM.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "ide",
+  "title": "FormCast IDE Demo",
+  "x": 100, "y": 80, "width": 640, "height": 440,
+  "controls": [
+    {
+      "type": "PANEL", "id": "toolbar",
+      "x": 0, "y": 0, "width": 640, "height": 36,
+      "children": [
+        {
+          "type": "BUTTON", "id": "btnNew",
+          "x": 4, "y": 4, "width": 60, "height": 26,
+          "text": "New"
+        },
+        {
+          "type": "BUTTON", "id": "btnOpen",
+          "x": 68, "y": 4, "width": 60, "height": 26,
+          "text": "Open"
+        },
+        {
+          "type": "BUTTON", "id": "btnSave",
+          "x": 132, "y": 4, "width": 60, "height": 26,
+          "text": "Save"
+        }
+      ]
+    },
+    {
+      "type": "PANEL", "id": "sidebar",
+      "x": 0, "y": 36, "width": 180, "height": 348,
+      "children": [
+        {
+          "type": "LISTVIEW", "id": "lst",
+          "x": 4, "y": 4, "width": 172, "height": 340,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "type": "PANEL", "id": "editor",
+      "x": 180, "y": 36, "width": 460, "height": 348,
+      "children": [
+        {
+          "type": "MEMO", "id": "memo",
+          "x": 4, "y": 4, "width": 452, "height": 340,
+          "text": "Select a file from the sidebar and click Open."
+        }
+      ]
+    },
+    {
+      "type": "PANEL", "id": "status",
+      "x": 0, "y": 384, "width": 640, "height": 30,
+      "children": [
+        {
+          "type": "LABEL", "id": "lbl",
+          "x": 4, "y": 6, "width": 500, "height": 18,
+          "text": "Ready"
+        }
+      ]
+    }
+  ]
+}

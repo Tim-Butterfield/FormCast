@@ -1,0 +1,22 @@
+// 12-viewer.jsonc -- RICHMEMO log viewer
+// =======================================
+//
+// A single RICHMEMO control filling the client area.  The BTM
+// sets the title dynamically to include the selected filename
+// and populates the control with per-line syntax coloring via
+// appendcolor.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "viewer",
+  "title": "Log Viewer",
+  "x": 200, "y": 120, "width": 620, "height": 440,
+  "controls": [
+    {
+      "type": "RICHMEMO", "id": "rm",
+      "x": 8, "y": 8, "width": 604, "height": 390,
+      "text": ""
+    }
+  ]
+}

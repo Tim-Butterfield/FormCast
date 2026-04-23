@@ -1,0 +1,56 @@
+@echo off
+setlocal
+::
+:: 07-events.btm -- streaming events with `do ev in /p formevents`
+:: ===============================================================
+::
+:: Opens a form with three buttons and a text box, then streams
+:: every captured event through stdout via the FORMEVENTS
+:: command. Each event arrives on its own line in the format
+:: `handle kind ctrl data`. The script parses the kind and
+:: stops the loop when "close" arrives.
+::
+:: Demonstrates: FORMEVENTS streaming command, `do ... in /p`
+:: pipe consumption, parsing event lines with @word, the
+:: events_pending bit (32) implicit in the streaming pattern.
+::
+:: Note: this is the synchronous flavor; an alternative
+:: pattern is `on condition (%@formstate[%h] AND 32) NE 0
+:: gosub :drain`.
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+echo Click buttons or type in the textbox.  Quit to stop.
+echo.
+
+:loop
+  do ev in /p formevents %h
+    set kind=%@word[1,%ev]
+    set ctrl=%@word[2,%ev]
+    echo received: kind=%kind ctrl=%ctrl
+    if "%ctrl" == "btnQuit" goto :done
+    if "%kind" == "close" goto :done
+  enddo
+  delay /m 200
+  goto :loop
+
+:done
+set RC=%@formclose[%h]
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+  set h=%@formopen[form,evdemo,200,200,400,200]
+  set RC=%@formset[%h,.,title,Click some buttons]
+  set RC=%@formadd[%h,txt,EDIT,12,12,376,24,]
+  set RC=%@formadd[%h,btnA,BUTTON,12,48,80,28,A]
+  set RC=%@formadd[%h,btnB,BUTTON,100,48,80,28,B]
+  set RC=%@formadd[%h,btnC,BUTTON,188,48,80,28,C]
+  set RC=%@formadd[%h,btnQuit,BUTTON,300,48,80,28,Quit]
+return

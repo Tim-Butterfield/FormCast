@@ -1,0 +1,93 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/Tim-Butterfield/FormCast/schema/formcast-template.schema.json",
+ "title": "FormCast template",
+ "description": "Schema for FormCast JSONC template files consumed by @FORMLOAD and @FORMIMPORT. Describes a single form descriptor at the top level: well-known fields plus an open-ended controls array. Numeric fields (x, y, width, height) accept either a JSON number or a JSON string; the string form is what enables the ${var} substitution path because the substituted value is always a string.",
+
+ "type": "object",
+ "additionalProperties": false,
+
+ "properties": {
+ "version": {
+ "description": "Template schema version. Currently 1.",
+ "type": "integer",
+ "minimum": 1
+ },
+ "type": {
+ "description": "Form type token. Picks the WinForms base class and default chrome at realize time. Defaults to 'form' if omitted.",
+ "type": "string",
+ "examples": ["form", "dialog", "messagebox"]
+ },
+ "name": {
+ "description": "User-supplied name for the form. May be plain ('settings') or scope-qualified ('Local\\settings', 'Global\\foo').",
+ "type": "string"
+ },
+ "title": {
+ "description": "Display title shown in the form's title bar when realized. Defaults to 'name' if not explicitly set.",
+ "type": "string"
+ },
+ "x": { "$ref": "#/$defs/intOrIntString" },
+ "y": { "$ref": "#/$defs/intOrIntString" },
+ "width": { "$ref": "#/$defs/intOrIntString" },
+ "height": { "$ref": "#/$defs/intOrIntString" },
+ "layout": {
+ "description": "Layout manager mode. Drives @FORMRELAYOUT.",
+ "type": "string",
+ "enum": ["absolute", "flow", "grid", "dock"]
+ },
+ "props": {
+ "description": "Free-form form-level property bag. Used by FormLayoutFactory to read layout-manager configuration knobs (grid_rows, grid_cols, grid_hgap, grid_vgap, grid_padding, flow_hgap, flow_vgap, flow_padding, flow_direction, flow_wrap, dock_padding) and by future control-type-specific attributes. Values are stored as strings.",
+ "type": "object",
+ "additionalProperties": { "type": "string" }
+ },
+ "controls": {
+ "description": "Ordered list of controls owned by this form. Order matters for flow and dock layouts; grid layouts use it as a fallback when a control has no row/col property.",
+ "type": "array",
+ "items": { "$ref": "#/$defs/control" }
+ }
+ },
+
+ "$defs": {
+ "intOrIntString": {
+ "description": "Integer field that may be expressed as either a JSON number or a JSON string. The string form is required for ${var} substitution because the substituted value is always a string; ReadInt falls through to int.TryParse on string values.",
+ "anyOf": [
+ { "type": "integer" },
+ { "type": "string", "pattern": "^-?[0-9]+$|^\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}$" }
+ ]
+ },
+
+ "control": {
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["type"],
+ "properties": {
+ "type": {
+ "description": "Control type token. 39 types recognized at realize time including LABEL, EDIT, BUTTON, CHECKBOX, RADIO, PANEL, LISTVIEW, MEMO, RICHMEMO, PROGRESSBAR, GROUPBOX, COMBOBOX, TABCONTROL, TABPAGE, NUMERICUPDOWN, DATETIMEPICKER, LINKLABEL, PICTUREBOX, TRACKBAR, LISTBOX, CHECKEDLISTBOX, MASKEDTEXTBOX, MONTHCALENDAR, TREEVIEW, SPLITCONTAINER, MENUSTRIP, CONTEXTMENU, TOOLBAR, STATUSBAR, DOMAINUPDOWN, HSCROLLBAR, VSCROLLBAR, DATAGRID, FLOWPANEL, TABLEPANEL, PROPERTYGRID, WEBBROWSER, TOGGLE, SEPARATOR. Type is preserved as supplied but compared case-insensitively.",
+ "type": "string"
+ },
+ "id": {
+ "description": "Unique identifier within the owning form. Used by @FORMSET, @FORMGET, @FORMBIND, @FORMSIMULATE, @FORMIMPORT collision detection. Case-insensitive.",
+ "type": "string"
+ },
+ "x": { "$ref": "#/$defs/intOrIntString" },
+ "y": { "$ref": "#/$defs/intOrIntString" },
+ "width": { "$ref": "#/$defs/intOrIntString" },
+ "height": { "$ref": "#/$defs/intOrIntString" },
+ "text": {
+ "description": "Display text. LABEL/BUTTON/CHECKBOX caption; EDIT initial text; PANEL unused.",
+ "type": "string"
+ },
+ "props": {
+ "description": "Free-form control-level property bag. Layout managers read 'row', 'col', 'rowspan', 'colspan' (grid), 'dock' (dock). Appearance properties: 'backcolor' and 'forecolor' accept named colors ('Blue', 'DarkBlue') or hex ('#RRGGBB'); 'font' accepts 'family:size[:style]' (e.g. 'Segoe UI:11:bold'); 'anchor' accepts edges joined by + ('top+bottom+left+right'). Event bindings: '_bind.click', '_bind.change', '_bind.close'. Values are strings.",
+ "type": "object",
+ "additionalProperties": { "type": "string" }
+ },
+ "children": {
+ "description": "Nested child controls for container types (PANEL, GROUPBOX, TABCONTROL, TABPAGE, SPLITCONTAINER, MENUSTRIP, CONTEXTMENU, TOOLBAR, STATUSBAR, FLOWPANEL, TABLEPANEL).",
+ "type": "array",
+ "items": { "$ref": "#/$defs/control" }
+ }
+ }
+ }
+ }
+}

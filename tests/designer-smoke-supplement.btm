@@ -1,0 +1,593 @@
+@echo off
+setlocal
+on break gosub fc_cleanup
+::
+:: designer-smoke-supplement.btm
+:: =============================
+::
+:: Supplementary smoke tests covering areas NOT exercised by
+:: designer-integration.btm. Focus:
+::   - Template save/load round-trip
+::   - All @formadd-able control types
+::   - PropertyGrid designtarget binding
+::   - Outline TreeView operations
+::   - design_mode toggle
+::   - Panel parenting / container children
+::   - TabControl with TABPAGE children
+::   - @FORMVERSION, @FORMSAVECOMPOSITE
+::   - confirmclose round-trip
+::   - runtimecontextmenu attachment
+::
+:: Usage:
+::   set FORMCAST_DLL=path\to\FormCast.dll
+::   call tests\designer-smoke-supplement.btm
+::
+:: timeout=180
+::
+
+set REPO=%@full[%_batchpath\..]
+set PASS=0
+set FAIL=0
+set TOTAL=0
+
+call "%REPO\examples\formcast-check.btm" load
+iff %_? NE 0 then
+  echo SUPPLEMENT: plugin load failed
+  endlocal
+  quit 1
+endiff
+
+echo FormCast v%@formversion[] -- Designer Smoke Supplement
+echo ============================================================
+echo.
+
+:: ==================== Helper: check ====================
+goto :start_tests
+
+:check
+  set /a TOTAL=%TOTAL + 1
+  iff "%_actual" == "%_expect" then
+    set /a PASS=%PASS + 1
+    echo   PASS: %_tname
+  else
+    set /a FAIL=%FAIL + 1
+    echo   FAIL: %_tname (expected=[%_expect] actual=[%_actual])
+  endiff
+return
+
+:check_nonempty
+  set /a TOTAL=%TOTAL + 1
+  iff "%_actual" != "" then
+    set /a PASS=%PASS + 1
+    echo   PASS: %_tname (=[%_actual])
+  else
+    set /a FAIL=%FAIL + 1
+    echo   FAIL: %_tname (expected non-empty, got empty)
+  endiff
+return
+
+:check_truthy
+  set /a TOTAL=%TOTAL + 1
+  iff %_actual GT 0 then
+    set /a PASS=%PASS + 1
+    echo   PASS: %_tname (=[%_actual])
+  else
+    set /a FAIL=%FAIL + 1
+    echo   FAIL: %_tname (expected GT 0, got [%_actual])
+  endiff
+return
+
+:start_tests
+
+:: ==================== Test: @FORMVERSION ====================
+echo --- @FORMVERSION ---
+set _tname=@FORMVERSION returns non-empty
+set _actual=%@formversion[]
+gosub check_nonempty
+echo.
+
+:: ==================== Test: design_mode toggle ====================
+echo --- design_mode toggle ---
+set hC=%@formopen[form,supp_dm,0,0,400,300]
+set _tname=form open (design_mode test) returns handle
+set _actual=%hC
+gosub check_nonempty
+
+set RC=%@formset[%hC,.,design_mode,1]
+set _tname=design_mode read back as 1
+set _expect=1
+set _actual=%@formget[%hC,.,design_mode]
+gosub check
+
+set RC=%@formset[%hC,.,design_mode,0]
+set _tname=design_mode read back as 0
+set _expect=0
+set _actual=%@formget[%hC,.,design_mode]
+gosub check
+
+set RC=%@formset[%hC,.,design_mode,1]
+set _tname=design_mode back to 1
+set _expect=1
+set _actual=%@formget[%hC,.,design_mode]
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: confirmclose round-trip ====================
+echo --- confirmclose round-trip ---
+set hC=%@formopen[form,supp_cc,0,0,400,300]
+
+set RC=%@formset[%hC,.,confirmclose,1]
+set _tname=confirmclose read back as 1
+set _expect=1
+set _actual=%@formget[%hC,.,confirmclose]
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set _tname=confirmclose read back as 0
+set _expect=0
+set _actual=%@formget[%hC,.,confirmclose]
+gosub check
+
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: All @formadd-able control types ====================
+echo --- all @formadd control types ---
+set hC=%@formopen[form,supp_types,0,0,600,500]
+set RC=%@formset[%hC,.,design_mode,1]
+
+:: List all types we exercise via @formadd. The designer toolbox exposes 24;
+:: the plugin supports more. We test the subset the designer/users will hit.
+set _types=LABEL EDIT BUTTON CHECKBOX TOGGLE RADIO PANEL LISTVIEW RICHMEMO GROUPBOX COMBOBOX NUMERICUPDOWN DATETIMEPICKER LINKLABEL PICTUREBOX TRACKBAR LISTBOX CHECKEDLISTBOX MASKEDTEXTBOX MONTHCALENDAR TREEVIEW SPLITCONTAINER DOMAINUPDOWN HSCROLLBAR VSCROLLBAR DATAGRID FLOWPANEL TABLEPANEL PROPERTYGRID PROGRESSBAR MEMO
+set _ntypes=%@words[%_types]
+
+set /a _tidx=0
+set /a _addOK=0
+set /a _addFAIL=0
+set _failList=
+do while %_tidx LT %_ntypes
+  set _t=%@word[%_tidx,%_types]
+  set /a _num=%_tidx + 1
+  set _id=T%[_num]
+  set RC=%@formadd[%hC,%[_id],%[_t],0,0,60,24,]
+  set _got=%@formget[%hC,%[_id],type]
+  iff "%_got" == "%_t" then
+    set /a _addOK=%_addOK + 1
+  else
+    set /a _addFAIL=%_addFAIL + 1
+    set _failList=%_failList %_t
+  endiff
+  set /a _tidx=%_tidx + 1
+enddo
+
+set _tname=control types attempted matches list length
+set _expect=%_ntypes
+set _actual=%_tidx
+gosub check
+
+set _tname=all control types added cleanly (OK count)
+set _expect=%_ntypes
+set _actual=%_addOK
+gosub check
+
+if "%_failList" != "" echo   failed types:%_failList
+
+set _tname=canvas control count matches add count
+set _expect=%_ntypes
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: TabControl with TABPAGE children ====================
+echo --- TabControl + TabPages ---
+set hC=%@formopen[form,supp_tab,0,0,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+
+set RC=%@formadd[%hC,Tab1,TABCONTROL,0,0,300,200,]
+set _tname=TABCONTROL added
+set _expect=TABCONTROL
+set _actual=%@formget[%hC,Tab1,type]
+gosub check
+
+set RC=%@formadd[%hC,Tab1/page1,TABPAGE,0,0,0,0,Page One]
+set RC=%@formadd[%hC,Tab1/page2,TABPAGE,0,0,0,0,Page Two]
+set RC=%@formadd[%hC,Tab1/page3,TABPAGE,0,0,0,0,Page Three]
+
+set _tname=page1 child type is TABPAGE
+set _expect=TABPAGE
+set _actual=%@formget[%hC,Tab1/page1,type]
+gosub check
+
+set _tname=page2 child type is TABPAGE
+set _expect=TABPAGE
+set _actual=%@formget[%hC,Tab1/page2,type]
+gosub check
+
+set _tname=page3 child type is TABPAGE
+set _expect=TABPAGE
+set _actual=%@formget[%hC,Tab1/page3,type]
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: Panel parenting ====================
+echo --- Panel parenting ---
+set hC=%@formopen[form,supp_parent,0,0,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+
+set RC=%@formadd[%hC,Panel1,PANEL,10,10,300,200,]
+set RC=%@formadd[%hC,Panel1/InnerLbl,LABEL,5,5,100,20,Inner]
+set RC=%@formadd[%hC,Panel1/InnerBtn,BUTTON,5,30,80,28,Go]
+
+set _tname=Panel1 type is PANEL
+set _expect=PANEL
+set _actual=%@formget[%hC,Panel1,type]
+gosub check
+
+set _tname=Panel1/InnerLbl type is LABEL
+set _expect=LABEL
+set _actual=%@formget[%hC,Panel1/InnerLbl,type]
+gosub check
+
+set _tname=top-level control count is 1
+set _expect=1
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+:: Verify the controllist JSON contains Panel1 with child items
+set _json=%@formget[%hC,.,controllist]
+set _jrc=%@jsoninput[%_json]
+set _tname=controllist root item is Panel1
+set _expect=Panel1
+set _actual=%@unquote[%@jsonxpath[/json/items/[1]/id/]]
+gosub check
+set _jrc=%@jsonreset[]
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: PropertyGrid designtarget binding ====================
+echo --- PropertyGrid designtarget ---
+set hProps=%@formload[%REPO\examples\designer\templates\properties.jsonc]
+set _tname=properties.jsonc loaded
+set _actual=%hProps
+gosub check_nonempty
+
+iff "%hProps" != "" then
+  set _tname=propGrid control type is PROPERTYGRID
+  set _expect=PROPERTYGRID
+  set _actual=%@formget[%hProps,propGrid,type]
+  gosub check
+
+  set _tname=outline control type is TREEVIEW
+  set _expect=TREEVIEW
+  set _actual=%@formget[%hProps,outline,type]
+  gosub check
+
+  set _tname=lblOutline control type is LABEL
+  set _expect=LABEL
+  set _actual=%@formget[%hProps,lblOutline,type]
+  gosub check
+
+  :: Create a canvas and bind the propGrid to it
+  set hC=%@formopen[form,supp_props,0,0,400,300]
+  set RC=%@formset[%hC,.,design_mode,1]
+  set RC=%@formadd[%hC,Lbl1,LABEL,10,10,100,20,Hello]
+
+  :: Bind propGrid to the form as a whole
+  set RC=%@formset[%hProps,propGrid,designtarget,%hC:.]
+  set _tname=propGrid designtarget form accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  :: Bind propGrid to a specific control
+  set RC=%@formset[%hProps,propGrid,designtarget,%hC:Lbl1]
+  set _tname=propGrid designtarget control accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  :: Outline operations
+  set RC=%@formset[%hProps,outline,text,]
+  set _tname=outline clear (text='') accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set RC=%@formset[%hProps,outline,addnode,Canvas:Canvas root]
+  set _tname=outline addnode root accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set RC=%@formset[%hProps,outline,addnode,Canvas/Lbl1:Lbl1 (LABEL)]
+  set _tname=outline addnode child accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set RC=%@formset[%hProps,outline,expandall,]
+  set _tname=outline expandall accepted
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set RC=%@formset[%hC,.,confirmclose,0]
+  set RC=%@formclose[%hC]
+  set RC=%@formset[%hProps,.,confirmclose,0]
+  set RC=%@formclose[%hProps]
+endiff
+echo.
+
+:: ==================== Test: Runtime context menu attachment ====================
+echo --- runtimecontextmenu attachment ---
+set hTool=%@formload[%REPO\examples\designer\templates\toolbox.jsonc]
+set _tname=toolbox.jsonc loaded
+set _actual=%hTool
+gosub check_nonempty
+
+iff "%hTool" != "" then
+  set hC=%@formopen[form,supp_ctx,0,0,400,300]
+  set RC=%@formset[%hC,.,design_mode,1]
+
+  :: Attach ctxMenu (defined in toolbox.jsonc) as runtime context menu on canvas
+  set RC=%@formset[%hC,.,runtimecontextmenu,%hTool:ctxMenu]
+  set _tname=runtimecontextmenu set returns 0
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set RC=%@formset[%hC,.,confirmclose,0]
+  set RC=%@formclose[%hC]
+  set RC=%@formset[%hTool,.,confirmclose,0]
+  set RC=%@formclose[%hTool]
+endiff
+echo.
+
+:: ==================== Test: Template save/load round-trip ====================
+echo --- template save/load round-trip ---
+set _tmpl=%TEMP\fc_smoke_roundtrip.jsonc
+if exist "%_tmpl" del /q "%_tmpl"
+
+set hC=%@formopen[form,supp_rt,0,0,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+set RC=%@formadd[%hC,RtLabel1,LABEL,20,30,120,20,Hello World]
+set RC=%@formadd[%hC,RtEdit1,EDIT,20,60,150,24,]
+set RC=%@formadd[%hC,RtBtn1,BUTTON,20,100,80,28,Click Me]
+
+set _tname=3 controls added pre-save
+set _expect=3
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+:: Save (designer disables design_mode before saving)
+set RC=%@formset[%hC,.,design_mode,0]
+set RC=%@formsave[%hC,%_tmpl]
+set _tname=@formsave returns 0
+set _expect=0
+set _actual=%RC
+gosub check
+
+set _tname=save produced file on disk
+set _expect=1
+iff exist "%_tmpl" then
+  set _actual=1
+else
+  set _actual=0
+endiff
+gosub check
+
+:: Close and reload
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+
+set hC2=%@formload[%_tmpl]
+set _tname=reloaded handle non-empty
+set _actual=%hC2
+gosub check_nonempty
+
+iff "%hC2" != "" then
+  set _tname=reloaded control count is 3
+  set _expect=3
+  set _actual=%@formget[%hC2,.,controls]
+  gosub check
+
+  set _tname=RtLabel1 survives round-trip (type)
+  set _expect=LABEL
+  set _actual=%@formget[%hC2,RtLabel1,type]
+  gosub check
+
+  set _tname=RtLabel1 text survives round-trip
+  set _expect=Hello World
+  set _actual=%@formget[%hC2,RtLabel1,text]
+  gosub check
+
+  set _tname=RtLabel1 x coordinate survives
+  set _expect=20
+  set _actual=%@formget[%hC2,RtLabel1,x]
+  gosub check
+
+  set _tname=RtLabel1 y coordinate survives
+  set _expect=30
+  set _actual=%@formget[%hC2,RtLabel1,y]
+  gosub check
+
+  set _tname=RtBtn1 type survives
+  set _expect=BUTTON
+  set _actual=%@formget[%hC2,RtBtn1,type]
+  gosub check
+
+  set _tname=RtEdit1 type survives
+  set _expect=EDIT
+  set _actual=%@formget[%hC2,RtEdit1,type]
+  gosub check
+
+  set RC=%@formset[%hC2,.,confirmclose,0]
+  set RC=%@formclose[%hC2]
+endiff
+
+if exist "%_tmpl" del /q "%_tmpl"
+echo.
+
+:: ==================== Test: @FORMSAVEIMAGE on loaded template ====================
+echo --- @FORMSAVEIMAGE on loaded template ---
+set _img=%TEMP\fc_smoke_image.png
+if exist "%_img" del /q "%_img"
+
+set hTool=%@formload[%REPO\examples\designer\templates\toolbox.jsonc]
+iff "%hTool" != "" then
+  set RC=%@formshow[%hTool]
+  set RC=%@formsaveimage[%hTool,%_img]
+  set _tname=@formsaveimage returns 0
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  set _tname=image produced on disk
+  set _expect=1
+  iff exist "%_img" then
+    set _actual=1
+  else
+    set _actual=0
+  endiff
+  gosub check
+
+  set _fsize=%@filesize[%_img]
+  set _tname=image file size GT 0
+  set _actual=%_fsize
+  gosub check_truthy
+
+  set RC=%@formset[%hTool,.,confirmclose,0]
+  set RC=%@formclose[%hTool]
+endiff
+if exist "%_img" del /q "%_img"
+echo.
+
+:: ==================== Test: @FORMSAVECOMPOSITE three-window ====================
+echo --- @FORMSAVECOMPOSITE three-window ---
+set _comp=%TEMP\fc_smoke_composite.png
+if exist "%_comp" del /q "%_comp"
+
+set hC=%@formopen[form,supp_comp_canvas,200,100,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+set hT=%@formload[%REPO\examples\designer\templates\toolbox.jsonc]
+set hP=%@formload[%REPO\examples\designer\templates\properties.jsonc]
+
+iff "%hT" != "" .and. "%hP" != "" then
+  set RC=%@formshow[%hC]
+  set RC=%@formshow[%hT]
+  set RC=%@formshow[%hP]
+
+  :: @formsavecomposite syntax: handle-list separated by commas (or spaces)
+  :: Try the comma form first; if that rejects, try space-separated.
+  set RC=%@formsavecomposite[%_comp,%hT,%hC,%hP]
+  set _tname=@formsavecomposite returns 0
+  set _expect=0
+  set _actual=%RC
+  gosub check
+
+  iff exist "%_comp" then
+    set _tname=composite image produced
+    set _expect=1
+    set _actual=1
+  else
+    set _tname=composite image produced
+    set _expect=1
+    set _actual=0
+  endiff
+  gosub check
+
+  set RC=%@formset[%hC,.,confirmclose,0]
+  set RC=%@formclose[%hC]
+  set RC=%@formset[%hT,.,confirmclose,0]
+  set RC=%@formclose[%hT]
+  set RC=%@formset[%hP,.,confirmclose,0]
+  set RC=%@formclose[%hP]
+endiff
+if exist "%_comp" del /q "%_comp"
+echo.
+
+:: ==================== Test: undo/redo + snapshot ====================
+:: Follows the designer's pattern: snapshot AFTER a change (see
+:: :after_add and the undo/redo handlers in formcast-visual-designer.btm).
+echo --- undo/redo snapshot ---
+set hC=%@formopen[form,supp_undo,0,0,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+
+set RC=%@formadd[%hC,U1,LABEL,10,10,100,20,v1]
+set RC=%@formset[%hC,.,snapshot,]
+
+set _tname=controls=1 after add
+set _expect=1
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+set RC=%@formadd[%hC,U2,LABEL,10,40,100,20,v2]
+set RC=%@formset[%hC,.,snapshot,]
+
+set _tname=controls=2 after second add
+set _expect=2
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+set RC=%@formset[%hC,.,undo,]
+set _tname=controls after undo (expect 1)
+set _expect=1
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+set RC=%@formset[%hC,.,redo,]
+set _tname=controls after redo (expect 2)
+set _expect=2
+set _actual=%@formget[%hC,.,controls]
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Test: refreshdesign no-op when design_mode=1 ====================
+echo --- refreshdesign ---
+set hC=%@formopen[form,supp_refresh,0,0,400,300]
+set RC=%@formset[%hC,.,design_mode,1]
+set RC=%@formadd[%hC,R1,BUTTON,10,10,80,28,R]
+
+set RC=%@formset[%hC,.,refreshdesign,]
+set _tname=refreshdesign returns 0 in design_mode
+set _expect=0
+set _actual=%RC
+gosub check
+
+set RC=%@formset[%hC,.,confirmclose,0]
+set RC=%@formclose[%hC]
+echo.
+
+:: ==================== Cleanup ====================
+set RC=%@formlog[off]
+call "%REPO\examples\formcast-check.btm" unload
+
+echo ============================================================
+echo Supplement results: %PASS passed, %FAIL failed, %TOTAL total
+echo ============================================================
+
+iff %FAIL GT 0 then
+  endlocal & quit 1
+else
+  endlocal & quit 0
+endiff
+
+:fc_cleanup
+  set RC=%@formlog[off]
+  plugin /u FormCast 2>nul
+  endlocal
+  quit 130

@@ -1,0 +1,21 @@
+// 11-pipe-richmemo.jsonc -- RICHMEMO form for colored piped output
+// ================================================================
+//
+// A single RICHMEMO control filling the client area.  Used by
+// 11-pipe-output.btm Part 2 to capture `dir /b` output with
+// per-line Blue coloring via FORMPIPE.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "colorpipe",
+  "title": "Directory listing (RICHMEMO + Blue)",
+  "x": 200, "y": 150, "width": 500, "height": 300,
+  "controls": [
+    {
+      "type": "RICHMEMO", "id": "rm",
+      "x": 8, "y": 8, "width": 484, "height": 250,
+      "text": ""
+    }
+  ]
+}

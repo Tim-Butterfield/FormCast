@@ -1,0 +1,63 @@
+// 15-app-window.jsonc -- Full application window template
+// Toolbar is listed BEFORE menu because WinForms Dock.Top
+// stacks in reverse addition order (last added = closest to top).
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "noteapp",
+  "title": "FormCast Notepad",
+  "x": 100, "y": 80, "width": 700, "height": 500,
+  "controls": [
+    {
+      "type": "TOOLBAR", "id": "tb",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "BUTTON", "id": "tbNew",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "New",
+          "props": { "stockicon": "new" } },
+        { "type": "SEPARATOR", "id": "sep1", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbOpen", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Open",
+          "props": { "stockicon": "open" } },
+        { "type": "SEPARATOR", "id": "sep2", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbSave", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Save",
+          "props": { "stockicon": "save" } }
+      ]
+    },
+    {
+      "type": "MENUSTRIP", "id": "menu",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        {
+          "type": "LABEL", "id": "file", "x": 0, "y": 0, "width": 0, "height": 0, "text": "File",
+          "children": [
+            { "type": "LABEL", "id": "mnuNew",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "New" },
+            { "type": "LABEL", "id": "mnuOpen", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Open..." },
+            { "type": "LABEL", "id": "mnuSave", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Save As..." },
+            { "type": "LABEL", "id": "sep1",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "mnuExit", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Exit" }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "help", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Help",
+          "children": [
+            { "type": "LABEL", "id": "mnuAbout", "x": 0, "y": 0, "width": 0, "height": 0, "text": "About..." }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MEMO", "id": "editor",
+      "x": 0, "y": 52, "width": 700, "height": 392,
+      "text": "Welcome to FormCast Notepad."
+    },
+    {
+      "type": "STATUSBAR", "id": "sb",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "LABEL", "id": "sbMsg", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Ready",
+          "props": { "spring": "1" } },
+        { "type": "LABEL", "id": "sbVer", "x": 0, "y": 0, "width": 0, "height": 0, "text": "FormCast Notepad" }
+      ]
+    }
+  ]
+}

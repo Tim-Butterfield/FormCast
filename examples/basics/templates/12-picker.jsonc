@@ -1,0 +1,36 @@
+// 12-picker.jsonc -- file picker dialog for the log viewer
+// =========================================================
+//
+// A LISTVIEW for file selection, a path label at the top, Open
+// and Cancel buttons, and a status label area at the bottom.
+// Columns and rows are added dynamically by the BTM.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "picker",
+  "title": "Select a log file to view",
+  "x": 150, "y": 100, "width": 500, "height": 360,
+  "controls": [
+    {
+      "type": "LABEL", "id": "lblPath",
+      "x": 8, "y": 8, "width": 484, "height": 20,
+      "text": ""
+    },
+    {
+      "type": "LISTVIEW", "id": "lst",
+      "x": 8, "y": 32, "width": 484, "height": 280,
+      "text": ""
+    },
+    {
+      "type": "BUTTON", "id": "btnOpen",
+      "x": 308, "y": 318, "width": 80, "height": 28,
+      "text": "Open"
+    },
+    {
+      "type": "BUTTON", "id": "btnCancel",
+      "x": 396, "y": 318, "width": 80, "height": 28,
+      "text": "Cancel"
+    }
+  ]
+}

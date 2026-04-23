@@ -1,0 +1,113 @@
+@echo off
+setlocal
+::
+:: 15-app-window.btm -- full application window
+:: =============================================
+::
+:: Demonstrates a FormCast window that looks and behaves like a
+:: real Windows application: menu bar, toolbar, status bar,
+:: main content area, and system tray icon. The form layout is
+:: loaded from a JSONC template.
+::
+:: Two launch modes:
+::   Normal: just run the BTM from a TCC prompt or Explorer.
+::   Standalone: pass /app to hide the TCC console window.
+::
+:: Demonstrates: @FORMLOAD, MENUSTRIP, TOOLBAR, STATUSBAR, MEMO,
+:: @FORMNOTIFY, @FORMTASKDIALOG, @FORMOPENDIALOG, @FORMSAVEDIALOG,
+:: stock icons, FORMEVENTS event loop.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 15-app-window.btm
+::
+
+:: Load the plugin.
+call "%_batchpath\..\formcast-check.btm" load
+
+:: /app = standalone mode: hide the TCC console window.
+if "%1" == "/app" set RC=%@formconsole[hide]
+
+:: Load the form layout from template.
+gosub render
+iff "%h" == "" then
+  echo ERROR: Failed to load 15-app-window.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+:: In app mode, show in the taskbar with a custom icon.
+iff "%1" == "/app" then
+  set RC=%@formset[%h,.,showintaskbar,1]
+  if exist "%_batchpath\app.ico" set RC=%@formset[%h,.,icon,%_batchpath\app.ico]
+endiff
+
+:: Show and add system tray icon
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+set RC=%@formnotify[show,FormCast Notepad]
+
+:: Event loop
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "mnuNew" goto :on_new
+    if "%_kind" == "click" .and. "%_ctrl" == "mnuOpen" goto :on_open
+    if "%_kind" == "click" .and. "%_ctrl" == "mnuSave" goto :on_save
+    if "%_kind" == "click" .and. "%_ctrl" == "mnuExit" goto :on_exit
+    if "%_kind" == "click" .and. "%_ctrl" == "mnuAbout" goto :on_about
+    if "%_kind" == "click" .and. "%_ctrl" == "tbNew" goto :on_new
+    if "%_kind" == "click" .and. "%_ctrl" == "tbOpen" goto :on_open
+    if "%_kind" == "click" .and. "%_ctrl" == "tbSave" goto :on_save
+    if "%_kind" == "close" goto :on_exit
+  enddo
+  delay /m 200
+  goto :loop
+
+:: ----- Event handlers -----
+
+:on_new
+  set RC=%@formset[%h,editor,text,]
+  set RC=%@formset[%h,.,title,FormCast Notepad - untitled]
+  set RC=%@formset[%h,sb/sbMsg,text,New document]
+goto :loop
+
+:on_open
+  set file=%@formopendialog[Open,Text files:*.txt:BTM scripts:*.btm:All files:*.*]
+  if "%file" == "" goto :loop
+  set RC=%@formset[%h,editor,text,]
+  do line in /p type "%file"
+    set RC=%@formset[%h,editor,appendtext,%line]
+  enddo
+  set RC=%@formset[%h,.,title,FormCast Notepad - %@filename[%file]]
+  set RC=%@formset[%h,sb/sbMsg,text,Opened %file]
+goto :loop
+
+:on_save
+  set file=%@formsavedialog[Save As,Text files:*.txt:All files:*.*]
+  if "%file" == "" goto :loop
+  set text=%@formget[%h,editor,text]
+  echo %text > "%file"
+  set RC=%@formset[%h,.,title,FormCast Notepad - %@filename[%file]]
+  set RC=%@formset[%h,sb/sbMsg,text,Saved %file]
+goto :loop
+
+:on_about
+  set RC=%@formtaskdialog[About,FormCast Notepad -- a simple text editor built entirely in BTM.,ok,info]
+goto :loop
+
+:on_exit
+  set RC=%@formnotify[hide]
+  set RC=%@formclose[%h]
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+set h=%@formload[%_batchpath\templates\15-app-window.jsonc]
+if "%h" == "" return
+:: Tooltips on toolbar buttons
+set RC=%@formset[%h,tbNew,tooltip,Create a new document]
+set RC=%@formset[%h,tbOpen,tooltip,Open an existing file]
+set RC=%@formset[%h,tbSave,tooltip,Save the current document]
+return

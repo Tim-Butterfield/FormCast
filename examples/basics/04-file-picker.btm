@@ -1,0 +1,140 @@
+@echo off
+::
+:: 04-file-picker.btm -- navigable file picker with folder support
+:: ===============================================================
+::
+:: Opens a 600x440 dialog showing the contents of the current
+:: directory in a sortable LISTVIEW. Folders appear first with
+:: "[DIR]" in the Size column. Double-click a folder to navigate
+:: into it; double-click ".." to go up one level. The path label
+:: at the top updates on every navigation. Double-click a file
+:: (or select it and click Open) to "pick" it.
+::
+:: Demonstrates: LISTVIEW with addcolumn / additem / clear /
+:: selecteditem, FORMEVENTS dblclick for navigation, dynamic
+:: repopulation of a LISTVIEW from within an event handler,
+:: folder/file detection via `isdir`, and the `..` parent
+:: convention.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 04-file-picker.btm
+::
+
+setlocal
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 04-file-picker.jsonc
+  quit 1
+endiff
+
+:: Start in the examples directory (CWD may be C:\ from Explorer).
+cd /d "%_batchpath"
+gosub populate
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Event loop
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "dblclick" .and. "%_ctrl" == "lst" goto :on_dblclick
+    if "%_kind" == "click" .and. "%_ctrl" == "btnOpen" goto :on_open
+    if "%_kind" == "click" .and. "%_ctrl" == "btnCancel" goto :on_cancel
+    if "%_kind" == "close" goto :on_cancel
+  enddo
+  delay /m 200
+  goto :loop
+
+:: ----- Navigate into a folder or pick a file on double-click -----
+:on_dblclick
+  set picked=%@formget[%h,lst,selecteditem]
+  if "%picked" == "" goto :loop
+  iff "%picked" == ".." then
+    :: Go up one level.
+    cd ..
+    gosub populate
+    goto :loop
+  endiff
+  iff isdir "%picked" then
+    :: Navigate into the folder.
+    cd "%picked"
+    gosub populate
+    goto :loop
+  endiff
+  :: It's a file -- treat as "Open".
+  goto :on_open
+
+:: ----- Pick the selected file -----
+:on_open
+  set picked=%@formget[%h,lst,selecteditem]
+  iff "%picked" == "" then
+    echo No file selected.
+    goto :loop
+  endiff
+  iff isdir "%picked" then
+    :: Selected a folder, navigate instead.
+    cd "%picked"
+    gosub populate
+    goto :loop
+  endiff
+  set RC=%@formclose[%h]
+  echo You picked: %_cwd\%picked
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:on_cancel
+  set RC=%@formclose[%h]
+  echo Cancelled.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+set h=%@formload[%_batchpath\templates\04-file-picker.jsonc]
+if "%h" == "" return
+:: Add columns to the listview (dynamic, not in the template).
+set RC=%@formset[%h,lst,addcolumn,Name:300:text]
+set RC=%@formset[%h,lst,addcolumn,Size:120:size]
+set RC=%@formset[%h,lst,addcolumn,Modified:140:date]
+return
+
+:: ----- Clear and repopulate the LISTVIEW from the current dir -----
+:populate
+  :: Update the path label.
+  set RC=%@formset[%h,lblPath,text,%_cwd]
+
+  :: Clear existing rows.
+  set RC=%@formset[%h,lst,clear,]
+
+  :: Re-add columns (clear wipes them too).
+  set RC=%@formset[%h,lst,addcolumn,Name:300:text]
+  set RC=%@formset[%h,lst,addcolumn,Size:120:size]
+  set RC=%@formset[%h,lst,addcolumn,Modified:140:date]
+
+  :: Parent directory entry (unless we're at a root).
+  iff "%@path[%_cwd,p]" != "%_cwd" then
+    set RC=%@formset[%h,lst,additem,..::[DIR]:]
+  endiff
+
+  :: Folders first.
+  do f in /a:d *
+    if "%f" == "." .or. "%f" == ".." iterate
+    set fdate=%@filedate["%f",d]
+    set RC=%@formset[%h,lst,additem,%f:[DIR]:%fdate]
+  enddo
+
+  :: Then files.
+  do f in /a:-d *
+    set fk=%@filesize["%f",k]
+    set fdate=%@filedate["%f",d]
+    set RC=%@formset[%h,lst,additem,%f:%fk KB:%fdate]
+  enddo
+
+  set RC=%@formset[%h,lst,sort,Name:asc]
+return

@@ -1,0 +1,70 @@
+@echo off
+setlocal
+::
+:: 05-settings.btm -- multi-control settings dialog
+:: ================================================
+::
+:: A typical "Preferences" dialog: text field for the user's
+:: name, two radio buttons for theme, three checkboxes for
+:: feature flags, and OK / Cancel buttons. On OK, every value
+:: is read back via @FORMGET and printed. On Cancel, no values
+:: are saved.
+::
+:: Demonstrates: multiple control types in one form, FORMEVENTS
+:: to capture clicks on action buttons, FORMGET reads on text /
+:: checkbox / radio controls.
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 05-settings.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Event loop
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "btnOK" goto :on_ok
+    if "%_kind" == "click" .and. "%_ctrl" == "btnCancel" goto :on_cancel
+    if "%_kind" == "close" goto :on_cancel
+  enddo
+  delay /m 200
+  goto :loop
+
+:on_ok
+set name=%@formget[%h,txtName,text]
+set theme=light
+if "%@formget[%h,rDark,checked]" == "1" set theme=dark
+set autosave=%@formget[%h,cAuto,checked]
+set wrap=%@formget[%h,cWrap,checked]
+set spell=%@formget[%h,cSpell,checked]
+set RC=%@formclose[%h]
+echo Saved settings:
+echo   name=%name
+echo   theme=%theme
+echo   autosave=%autosave
+echo   wrap=%wrap
+echo   spell=%spell
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+:on_cancel
+set RC=%@formclose[%h]
+echo Cancelled.
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+set h=%@formload[%_batchpath\templates\05-settings.jsonc]
+if "%h" == "" return
+set RC=%@formset[%h,.,acceptbutton,btnOK]
+set RC=%@formset[%h,.,cancelbutton,btnCancel]
+return

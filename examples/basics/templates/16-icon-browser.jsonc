@@ -1,0 +1,41 @@
+// 16-icon-browser.jsonc -- Icon browser layout template
+// SplitContainer: memo (top), scrollable icon grid (bottom).
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "iconbrowser",
+  "title": "FormCast Icon Browser",
+  "x": 50, "y": 30, "width": 720, "height": 750,
+  "controls": [
+    {
+      "type": "LABEL", "id": "lblUsage",
+      "x": 4, "y": 4, "width": 100, "height": 18, "text": "Usage:"
+    },
+    {
+      "type": "LABEL", "id": "lblCount",
+      "x": 200, "y": 4, "width": 300, "height": 18, "text": ""
+    },
+    {
+      "type": "SPLITCONTAINER", "id": "split",
+      "x": 0, "y": 24, "width": 716, "height": 698, "text": "",
+      "props": {
+        "anchor": "top+bottom+left+right",
+        "orientation": "horizontal",
+        "splitterdistance": "180"
+      },
+      "children": [
+        {
+          "type": "MEMO", "id": "usage",
+          "x": 0, "y": 0, "width": 710, "height": 164, "text": "Click an icon below to see usage instructions.",
+          "props": { "readonly": "1", "anchor": "top+left+right+bottom" }
+        },
+        {
+          "type": "PANEL", "id": "grid",
+          "x": 0, "y": 0, "width": 710, "height": 390, "text": "",
+          "props": { "anchor": "top+bottom+left+right" }
+        }
+      ]
+    }
+  ]
+}

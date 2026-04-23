@@ -1,0 +1,70 @@
+root = true
+
+# Defaults for everything: UTF-8, CRLF (Windows-only project), no
+# trailing whitespace, final newline.
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# C# source -- Microsoft conventions, with a few opinionated tightenings
+[*.cs]
+indent_size = 4
+
+# .NET formatting rules
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# Prefer var only when the type is apparent
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Expression-bodied members where they read well
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# Modern null handling
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+
+# Naming: PascalCase for types/methods/properties, _camelCase for private fields
+dotnet_naming_rule.private_fields_should_be_camel_case_with_underscore.severity = suggestion
+dotnet_naming_rule.private_fields_should_be_camel_case_with_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case_with_underscore.style = camel_case_with_underscore
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_fields.required_modifiers =
+
+dotnet_naming_style.camel_case_with_underscore.required_prefix = _
+dotnet_naming_style.camel_case_with_underscore.capitalization = camel_case
+
+# csproj / props / targets
+[*.{csproj,props,targets,xml}]
+indent_size = 2
+
+# JSON / JSONC
+[*.{json,jsonc}]
+indent_size = 2
+
+# Markdown -- preserve trailing whitespace (used for hard line breaks)
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Windows scripts dispatched through the bridge: ASCII only is enforced
+# by convention (see memory feedback_ascii_only_for_windows_scripts).
+# CRLF matches the project-wide default and the Windows-native parser
+# expectations of cmd.exe / powershell.exe / tcc.exe.
+[*.{btm,ps1,cmd,bat}]
+end_of_line = crlf

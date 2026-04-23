@@ -1,0 +1,29 @@
+// 09-modal-dialog.jsonc -- modal form that blocks until dismissed
+// ===============================================================
+//
+// Layout: two informational labels and an OK button.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "modal",
+  "title": "Confirm Action",
+  "x": 200, "y": 200, "width": 300, "height": 140,
+  "controls": [
+    {
+      "type": "LABEL", "id": "lbl",
+      "x": 12, "y": 12, "width": 280, "height": 20,
+      "text": "This dialog auto-closes in 3 seconds."
+    },
+    {
+      "type": "LABEL", "id": "lbl2",
+      "x": 12, "y": 36, "width": 280, "height": 20,
+      "text": "Or click OK to dismiss immediately."
+    },
+    {
+      "type": "BUTTON", "id": "btn",
+      "x": 200, "y": 80, "width": 80, "height": 28,
+      "text": "OK"
+    }
+  ]
+}

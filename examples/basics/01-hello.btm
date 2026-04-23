@@ -1,0 +1,64 @@
+@echo off
+setlocal
+::
+:: 01-hello.btm -- the simplest possible FormCast script
+:: ====================================================
+::
+:: Opens a 320x140 dialog with a label, an edit box, OK and
+:: Cancel buttons. OK (or Enter) greets the user; Cancel (or
+:: Escape or the X button) shows "Cancelled".
+::
+:: Demonstrates: @FORMOPEN, @FORMSET title/acceptbutton/
+:: cancelbutton, @FORMADD (LABEL, EDIT, BUTTON), FORMEVENTS,
+:: @FORMSHOW, @FORMFOCUS, @FORMGET, @FORMCLOSE.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 01-hello.btm
+::
+:: Expected output (after entering "Tim" and clicking OK):
+::   Hello, Tim
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Event loop: drain events on the script thread.
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "btnOK" goto :ok
+    if "%_kind" == "click" .and. "%_ctrl" == "btnCancel" goto :cancel
+    if "%_kind" == "close" goto :cancel
+  enddo
+  delay /m 200
+  goto :loop
+
+:: ---- Build the form (called by main and by capture script) ----
+:render
+  set h=%@formopen[form,hello,200,200,320,140]
+  set RC=%@formset[%h,.,title,Hello]
+  set RC=%@formadd[%h,lbl,LABEL,12,12,290,20,What is your name?]
+  set RC=%@formadd[%h,txt,EDIT,12,38,290,24,]
+  set RC=%@formadd[%h,btnOK,BUTTON,130,72,80,28,OK]
+  set RC=%@formadd[%h,btnCancel,BUTTON,220,72,80,28,Cancel]
+  set RC=%@formset[%h,.,acceptbutton,btnOK]
+  set RC=%@formset[%h,.,cancelbutton,btnCancel]
+return
+
+:ok
+set NAME=%@formget[%h,txt,text]
+set RC=%@formclose[%h]
+echo Hello, %NAME
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+:cancel
+set RC=%@formclose[%h]
+echo Cancelled
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0

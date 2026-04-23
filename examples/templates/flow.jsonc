@@ -1,0 +1,47 @@
+// flow.jsonc -- a horizontal flow-layout toolbar demonstrating
+// FormLayoutFactory's flow knobs.
+//
+// FlowLayout packs the controls left to right with the configured
+// hgap. After @FORMRELAYOUT, the buttons get sequential x positions
+// based on their declaration order and explicit width.
+{
+  "$schema": "../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "toolbar",
+  "title": "Toolbar",
+  "x": 50,
+  "y": 50,
+  "width": 360,
+  "height": 60,
+  "layout": "flow",
+  "props": {
+    "flow_hgap": "6",
+    "flow_vgap": "4",
+    "flow_padding": "8",
+    "flow_direction": "horizontal",
+    "flow_wrap": "true"
+  },
+  "controls": [
+    {
+      "type": "BUTTON", "id": "btnNew",
+      "x": 0, "y": 0, "width": 60, "height": 28,
+      "text": "New"
+    },
+    {
+      "type": "BUTTON", "id": "btnOpen",
+      "x": 0, "y": 0, "width": 60, "height": 28,
+      "text": "Open"
+    },
+    {
+      "type": "BUTTON", "id": "btnSave",
+      "x": 0, "y": 0, "width": 60, "height": 28,
+      "text": "Save"
+    },
+    {
+      "type": "BUTTON", "id": "btnQuit",
+      "x": 0, "y": 0, "width": 60, "height": 28,
+      "text": "Quit"
+    }
+  ]
+}

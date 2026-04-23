@@ -1,0 +1,71 @@
+@echo off
+::
+:: formcast-check.btm -- centralized plugin load/unload helper
+:: ===========================================================
+::
+:: Usage:
+::   call formcast-check.btm load     Load the FormCast plugin
+::   call formcast-check.btm unload   Unload the plugin; exit TCC
+::                                     if launched from Windows Explorer
+::
+:: Called by all FormCast example BTMs. Not intended to be run
+:: directly, but will show usage info if called without a parameter.
+::
+
+if "%1" == "load" goto fc_load
+if "%1" == "unload" goto fc_unload
+
+echo formcast-check.btm -- FormCast plugin load/unload helper
+echo.
+echo Usage:
+echo   call formcast-check.btm load     Load the plugin
+echo   call formcast-check.btm unload   Unload the plugin
+echo.
+echo This script is called by FormCast example BTMs.
+echo Set FORMCAST_DLL to the full path of FormCast.dll
+echo before running any FormCast example.
+quit 1
+
+:: ==================== LOAD ====================
+
+:fc_load
+:: plugin /l is an INTERNAL TCC command, so its exit code is in %_?
+:: (not %?, which tracks external processes). Load the DLL that
+:: FORMCAST_DLL points at, falling back to one sitting next to this
+:: helper if the env var is not set.
+::
+:: Resolve the caller's path through %@truename[] so relative paths,
+:: SUBST drives, and mapped drives all reduce to a canonical form
+:: that TCC's plugin loader can consume reliably. (A SUBST drive on
+:: top of a mapped share has been observed to fail managed binding
+:: with E_INVALIDARG; @truename unwraps one level to the underlying
+:: mapped drive or UNC path, which loads cleanly.)
+iff defined FORMCAST_DLL then
+  iff exist "%FORMCAST_DLL" then
+    set _fc_dll=%@truename[%FORMCAST_DLL]
+    plugin /l "%_fc_dll"
+    if %_? == 0 goto fc_done
+  endiff
+  echo ERROR: FORMCAST_DLL is set but the plugin failed to load.
+  echo   FORMCAST_DLL=%FORMCAST_DLL
+  quit 1
+endiff
+
+iff exist "%_batchpath\FormCast.dll" then
+  set _fc_dll=%@truename[%_batchpath\FormCast.dll]
+  plugin /l "%_fc_dll"
+  if %_? == 0 goto fc_done
+endiff
+
+echo ERROR: FormCast plugin not found or failed to load.
+echo Set FORMCAST_DLL to the full path of FormCast.dll
+quit 1
+
+:fc_done
+goto :eof
+
+:: ==================== UNLOAD ====================
+
+:fc_unload
+plugin /u FormCast 2>nul
+if "%@index[%_parent,explorer]" != "-1" exit

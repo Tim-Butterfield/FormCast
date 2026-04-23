@@ -1,0 +1,65 @@
+// 05-settings.jsonc -- multi-control settings dialog
+// ===================================================
+//
+// Layout: name field, theme radios, three checkboxes,
+// and OK / Cancel buttons at the bottom.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "settings",
+  "title": "Preferences",
+  "x": 200, "y": 150, "width": 400, "height": 280,
+  "controls": [
+    {
+      "type": "LABEL", "id": "lblName",
+      "x": 12, "y": 16, "width": 80, "height": 20,
+      "text": "Name:"
+    },
+    {
+      "type": "EDIT", "id": "txtName",
+      "x": 100, "y": 12, "width": 280, "height": 24,
+      "text": ""
+    },
+    {
+      "type": "LABEL", "id": "lblTheme",
+      "x": 12, "y": 52, "width": 80, "height": 20,
+      "text": "Theme:"
+    },
+    {
+      "type": "RADIO", "id": "rLight",
+      "x": 100, "y": 52, "width": 80, "height": 20,
+      "text": "Light"
+    },
+    {
+      "type": "RADIO", "id": "rDark",
+      "x": 184, "y": 52, "width": 80, "height": 20,
+      "text": "Dark"
+    },
+    {
+      "type": "CHECKBOX", "id": "cAuto",
+      "x": 12, "y": 88, "width": 360, "height": 20,
+      "text": "Enable autosave"
+    },
+    {
+      "type": "CHECKBOX", "id": "cWrap",
+      "x": 12, "y": 112, "width": 360, "height": 20,
+      "text": "Word wrap in editor"
+    },
+    {
+      "type": "CHECKBOX", "id": "cSpell",
+      "x": 12, "y": 136, "width": 360, "height": 20,
+      "text": "Spell check on save"
+    },
+    {
+      "type": "BUTTON", "id": "btnOK",
+      "x": 212, "y": 228, "width": 80, "height": 28,
+      "text": "OK"
+    },
+    {
+      "type": "BUTTON", "id": "btnCancel",
+      "x": 300, "y": 228, "width": 80, "height": 28,
+      "text": "Cancel"
+    }
+  ]
+}
