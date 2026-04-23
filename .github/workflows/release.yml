@@ -1,0 +1,101 @@
+name: Release
+
+# Release pipeline. Fires on pushes of tags matching v* (e.g. v1.0.0,
+# v1.2.3-rc1). Builds the solution in Release, runs the full xUnit
+# test suite as defense-in-depth against a tag on an untested commit,
+# stages the release tree, produces FormCast-v<tag>.zip, and publishes
+# a GitHub release with the zip attached and CHANGELOG.md as the body.
+#
+# Continuous integration for normal development lives in ci.yml and
+# fires on push/PR to main.
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    # softprops/action-gh-release@v2 creates the GitHub Release via the
+    # REST API, which requires write access to repo contents. The
+    # default GITHUB_TOKEN has read-only contents since GitHub tightened
+    # action token defaults in 2023, so grant write explicitly.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore FormCast.sln
+
+      - name: Build
+        run: dotnet build FormCast.sln -c Release --no-restore
+
+      - name: Test (defense-in-depth; catches a tag on an untested commit)
+        run: dotnet test tests/FormCast.Tests/FormCast.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Stage release artifacts
+        shell: pwsh
+        run: |
+          # Build a self-contained release zip. The bin/ directory
+          # includes FormCast.dll AND all its NuGet dependency DLLs
+          # (System.Text.Json, System.Memory, etc.) so the plugin
+          # works on any machine with .NET Framework 4.8 installed
+          # (which is required by TCC v36's plugin host anyway).
+          New-Item -ItemType Directory -Path release-stage | Out-Null
+          New-Item -ItemType Directory -Path release-stage/bin | Out-Null
+          New-Item -ItemType Directory -Path release-stage/docs | Out-Null
+          New-Item -ItemType Directory -Path release-stage/schema | Out-Null
+          New-Item -ItemType Directory -Path release-stage/examples | Out-Null
+
+          # Plugin DLL + all dependency DLLs + XML doc (exclude .pdb debug files)
+          Copy-Item src/FormCast/bin/Release/net48/*.dll  release-stage/bin/
+          Copy-Item src/FormCast/bin/Release/net48/*.xml  release-stage/bin/
+
+          # Host EXE + its config
+          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe        release-stage/bin/
+          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe.config release-stage/bin/
+
+          # Documentation
+          Copy-Item docs/*.md          release-stage/docs/
+          Copy-Item docs/images        release-stage/docs/images -Recurse
+
+          # Schema
+          Copy-Item schema/*           release-stage/schema/ -Recurse
+
+          # Examples (basics, templates, designer, screenshots).
+          # The loose formcast-check.btm at examples/ is the load/unload
+          # helper every example BTM invokes via `call "%_batchpath\..\formcast-check.btm" load`,
+          # so it must ship alongside the subdirectories.
+          Copy-Item examples/formcast-check.btm release-stage/examples/
+          Copy-Item examples/basics    release-stage/examples/basics    -Recurse
+          Copy-Item examples/templates release-stage/examples/templates -Recurse
+          Copy-Item examples/designer  release-stage/examples/designer  -Recurse
+          Copy-Item examples/screenshots release-stage/examples/screenshots -Recurse
+
+          # Top-level files
+          Copy-Item LICENSE           release-stage/
+          Copy-Item README.md         release-stage/
+          Copy-Item CHANGELOG.md      release-stage/
+          Copy-Item INSTALL.txt       release-stage/
+
+          $tag = '${{ github.ref_name }}'
+          Compress-Archive -Path release-stage/* -DestinationPath "FormCast-$tag.zip"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            FormCast-*.zip
+          generate_release_notes: true
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
