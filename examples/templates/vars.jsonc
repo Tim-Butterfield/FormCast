@@ -1,0 +1,55 @@
+// vars.jsonc -- a parameterized template demonstrating ${var}
+// substitution.
+//
+// The same template powers multiple BTM dialogs by varying the
+// substitution variables passed to @FORMLOAD. Numeric fields use
+// the string form ("width": "${w}") so that ReadInt's string
+// fall-through can parse the substituted value.
+//
+// Example invocations:
+//
+//   set h=%@formload[vars.jsonc,formname=rename|title=Rename file|w=420|h=140|prompt=New name:|default=untitled.txt]
+//   set h=%@formload[vars.jsonc,formname=search|title=Find|w=500|h=120|prompt=Search for:|default=]
+//
+// Note: inside %@function[...] brackets, BTM authors should use
+// bare `|` between vars segments. Do NOT escape it as `^|` --
+// the bracket parser preserves `|` literally and the `^` would
+// otherwise end up in the substituted value.
+{
+  "$schema": "../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "${formname}",
+  "title": "${title}",
+  "x": 100,
+  "y": 100,
+  "width": "${w}",
+  "height": "${h}",
+  "layout": "absolute",
+  "controls": [
+    {
+      "type": "LABEL",
+      "id": "lbl",
+      "x": 10, "y": 10, "width": 200, "height": 20,
+      "text": "${prompt}"
+    },
+    {
+      "type": "EDIT",
+      "id": "txt",
+      "x": 10, "y": 35, "width": 200, "height": 24,
+      "text": "${default}"
+    },
+    {
+      "type": "BUTTON",
+      "id": "btnOK",
+      "x": 10,  "y": 70, "width": 80, "height": 28,
+      "text": "OK"
+    },
+    {
+      "type": "BUTTON",
+      "id": "btnCancel",
+      "x": 100, "y": 70, "width": 80, "height": 28,
+      "text": "Cancel"
+    }
+  ]
+}

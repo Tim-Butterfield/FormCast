@@ -1,0 +1,353 @@
+@echo off
+setlocal
+::
+:: 00-everything.btm -- every visual control type, organized by tab
+:: ================================================================
+::
+:: A tabbed showcase demonstrating all FormCast visual control types.
+:: Each tab covers one category with generous spacing so nothing is
+:: clipped. The form itself demonstrates MENUSTRIP, TOOLBAR, and
+:: STATUSBAR as app chrome around the tabs.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 00-everything.btm
+::
+
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+goto after_render
+
+:: ---- Build the form (called by main and by capture script) ----
+:render
+set h=%@formopen[form,everything,20,10,1060,780]
+set RC=%@formset[%h,.,title,FormCast Control Showcase]
+set RC=%@formset[%h,.,font,Segoe UI:11]
+
+:: ============================================================
+:: App chrome: toolbar first, then menu bar.
+:: WinForms Dock.Top stacks in reverse addition order, so
+:: the LAST added control docks closest to the top. Adding
+:: the toolbar first and menu second puts the menu on top.
+:: ============================================================
+set RC=%@formadd[%h,tb,TOOLBAR,0,0,0,0,]
+set RC=%@formadd[%h,tb/tbNew,BUTTON,0,0,0,0,New]
+set RC=%@formset[%h,tb/tbNew,stockicon,new]
+set RC=%@formadd[%h,tb/sep1,SEPARATOR,0,0,0,0,-]
+set RC=%@formadd[%h,tb/tbOpen,BUTTON,0,0,0,0,Open]
+set RC=%@formset[%h,tb/tbOpen,stockicon,open]
+set RC=%@formadd[%h,tb/sep2,SEPARATOR,0,0,0,0,-]
+set RC=%@formadd[%h,tb/tbSave,BUTTON,0,0,0,0,Save]
+set RC=%@formset[%h,tb/tbSave,stockicon,save]
+
+set RC=%@formadd[%h,menu,MENUSTRIP,0,0,0,0,]
+set RC=%@formadd[%h,menu/file,LABEL,0,0,0,0,File]
+set RC=%@formadd[%h,menu/file/new,LABEL,0,0,0,0,New]
+set RC=%@formadd[%h,menu/file/open,LABEL,0,0,0,0,Open...]
+set RC=%@formadd[%h,menu/file/save,LABEL,0,0,0,0,Save]
+set RC=%@formadd[%h,menu/file/sep,LABEL,0,0,0,0,-]
+set RC=%@formadd[%h,menu/file/exit,LABEL,0,0,0,0,Exit]
+set RC=%@formadd[%h,menu/edit,LABEL,0,0,0,0,Edit]
+set RC=%@formadd[%h,menu/edit/cut,LABEL,0,0,0,0,Cut]
+set RC=%@formadd[%h,menu/edit/copy,LABEL,0,0,0,0,Copy]
+set RC=%@formadd[%h,menu/edit/paste,LABEL,0,0,0,0,Paste]
+set RC=%@formadd[%h,menu/help,LABEL,0,0,0,0,Help]
+set RC=%@formadd[%h,menu/help/about,LABEL,0,0,0,0,About FormCast...]
+
+:: ============================================================
+:: Tab control filling the main area
+:: ============================================================
+set RC=%@formadd[%h,tabs,TABCONTROL,4,72,1048,680,]
+set RC=%@formset[%h,tabs,anchor,top+bottom+left+right]
+
+:: ============================================================
+:: Tab 1: Basic Input
+:: ============================================================
+set RC=%@formadd[%h,tabs/basic,TABPAGE,0,0,0,0,Basic Input]
+
+set RC=%@formadd[%h,tabs/basic/l1,LABEL,20,16,200,28,Label:]
+set RC=%@formadd[%h,tabs/basic/d1,LABEL,230,16,260,28,This is a standard label]
+
+set RC=%@formadd[%h,tabs/basic/l2,LABEL,20,60,200,28,Edit:]
+set RC=%@formadd[%h,tabs/basic/d2,EDIT,230,56,260,30,Editable text field]
+
+set RC=%@formadd[%h,tabs/basic/l3,LABEL,20,104,200,28,Button:]
+set RC=%@formadd[%h,tabs/basic/d3,BUTTON,230,100,160,34,Click me]
+
+set RC=%@formadd[%h,tabs/basic/l4,LABEL,20,152,200,28,LinkLabel:]
+set RC=%@formadd[%h,tabs/basic/d4,LINKLABEL,230,152,300,28,Clickable hyperlink text]
+
+set RC=%@formadd[%h,tabs/basic/l5,LABEL,20,196,200,28,Checkbox:]
+set RC=%@formadd[%h,tabs/basic/d5,CHECKBOX,230,196,260,28,Enable this option]
+
+set RC=%@formadd[%h,tabs/basic/l6,LABEL,20,240,200,28,Radio:]
+set RC=%@formadd[%h,tabs/basic/d6a,RADIO,230,240,130,28,Option A]
+set RC=%@formadd[%h,tabs/basic/d6b,RADIO,370,240,130,28,Option B]
+
+set RC=%@formadd[%h,tabs/basic/l7,LABEL,20,284,200,28,GroupBox:]
+set RC=%@formadd[%h,tabs/basic/grp,GROUPBOX,230,280,340,80,Select a color]
+set RC=%@formadd[%h,tabs/basic/grp/r1,RADIO,16,32,100,28,Red]
+set RC=%@formadd[%h,tabs/basic/grp/r2,RADIO,120,32,100,28,Blue]
+set RC=%@formadd[%h,tabs/basic/grp/r3,RADIO,224,32,100,28,Green]
+
+set RC=%@formadd[%h,tabs/basic/l8,LABEL,20,380,200,28,MaskedTextBox:]
+set RC=%@formadd[%h,tabs/basic/d8,MASKEDTEXTBOX,230,376,240,30,]
+set RC=%@formset[%h,tabs/basic/d8,mask,(000) 000-0000]
+
+set RC=%@formadd[%h,tabs/basic/l9,LABEL,20,426,200,28,PictureBox:]
+set RC=%@formadd[%h,tabs/basic/d9,PICTUREBOX,230,422,140,80,]
+if exist "%_batchpath\00_picturebox.png" set RC=%@formset[%h,tabs/basic/d9,image,%_batchpath\00_picturebox.png]
+set RC=%@formset[%h,tabs/basic/d9,sizemode,zoom]
+set RC=%@formset[%h,tabs/basic/d9,backcolor,LightSteelBlue]
+
+:: Right column -- theme controls and info
+set RC=%@formadd[%h,tabs/basic/info,LABEL,590,16,400,130,These are the most common input controls. GroupBox is essential when you need multiple independent radio button groups.]
+
+set RC=%@formadd[%h,tabs/basic/lblTheme,LABEL,590,166,200,28,Use custom theme:]
+set RC=%@formadd[%h,tabs/basic/tglTheme,TOGGLE,810,166,54,28,]
+set RC=%@formadd[%h,tabs/basic/lblDark,LABEL,590,206,200,28,Dark mode:]
+set RC=%@formadd[%h,tabs/basic/tglDark,TOGGLE,810,206,54,28,]
+set RC=%@formadd[%h,tabs/basic/lblThemeStatus,LABEL,590,246,400,28,Theme: system defaults]
+
+:: ============================================================
+:: Tab 2: Numeric & Date
+:: ============================================================
+set RC=%@formadd[%h,tabs/numdate,TABPAGE,0,0,0,0,Numeric]
+
+set RC=%@formadd[%h,tabs/numdate/l1,LABEL,20,16,200,28,NumericUpDown:]
+set RC=%@formadd[%h,tabs/numdate/d1,NUMERICUPDOWN,230,16,140,30,]
+set RC=%@formset[%h,tabs/numdate/d1,min,0]
+set RC=%@formset[%h,tabs/numdate/d1,max,100]
+set RC=%@formset[%h,tabs/numdate/d1,value,42]
+
+set RC=%@formadd[%h,tabs/numdate/l2,LABEL,20,60,200,28,DomainUpDown:]
+set RC=%@formadd[%h,tabs/numdate/d2,DOMAINUPDOWN,230,56,180,30,]
+set RC=%@formset[%h,tabs/numdate/d2,additem,Small]
+set RC=%@formset[%h,tabs/numdate/d2,additem,Medium]
+set RC=%@formset[%h,tabs/numdate/d2,additem,Large]
+set RC=%@formset[%h,tabs/numdate/d2,text,Medium]
+
+set RC=%@formadd[%h,tabs/numdate/l3,LABEL,20,104,200,28,ProgressBar:]
+set RC=%@formadd[%h,tabs/numdate/d3,PROGRESSBAR,230,104,300,26,]
+set RC=%@formset[%h,tabs/numdate/d3,value,65]
+
+set RC=%@formadd[%h,tabs/numdate/l4,LABEL,20,152,200,28,TrackBar:]
+set RC=%@formadd[%h,tabs/numdate/d4,TRACKBAR,230,146,300,50,]
+set RC=%@formset[%h,tabs/numdate/d4,value,50]
+set RC=%@formset[%h,tabs/numdate/d4,tickfrequency,10]
+
+set RC=%@formadd[%h,tabs/numdate/l5,LABEL,20,220,200,28,DateTimePicker:]
+set RC=%@formadd[%h,tabs/numdate/d5,DATETIMEPICKER,230,216,280,32,]
+
+set RC=%@formadd[%h,tabs/numdate/l6,LABEL,20,268,200,28,MonthCalendar:]
+set RC=%@formadd[%h,tabs/numdate/d6,MONTHCALENDAR,230,268,10,10,]
+
+set RC=%@formadd[%h,tabs/numdate/l7,LABEL,580,16,200,28,HScrollBar:]
+set RC=%@formadd[%h,tabs/numdate/d7,HSCROLLBAR,580,48,300,24,]
+set RC=%@formset[%h,tabs/numdate/d7,value,40]
+
+set RC=%@formadd[%h,tabs/numdate/l8,LABEL,580,92,200,28,VScrollBar:]
+set RC=%@formadd[%h,tabs/numdate/d8,VSCROLLBAR,740,92,24,120,]
+set RC=%@formset[%h,tabs/numdate/d8,value,50]
+
+:: ============================================================
+:: Tab 3: Lists
+:: ============================================================
+set RC=%@formadd[%h,tabs/lists,TABPAGE,0,0,0,0,Lists]
+
+set RC=%@formadd[%h,tabs/lists/l1,LABEL,20,16,200,28,ComboBox:]
+set RC=%@formadd[%h,tabs/lists/d1,COMBOBOX,230,16,220,28,]
+set RC=%@formset[%h,tabs/lists/d1,style,list]
+set RC=%@formset[%h,tabs/lists/d1,additem,Apple]
+set RC=%@formset[%h,tabs/lists/d1,additem,Banana]
+set RC=%@formset[%h,tabs/lists/d1,additem,Cherry]
+set RC=%@formset[%h,tabs/lists/d1,selectedindex,1]
+
+set RC=%@formadd[%h,tabs/lists/l2,LABEL,20,60,200,28,ListBox:]
+set RC=%@formadd[%h,tabs/lists/d2,LISTBOX,230,56,220,110,]
+set RC=%@formset[%h,tabs/lists/d2,additem,First item]
+set RC=%@formset[%h,tabs/lists/d2,additem,Second item]
+set RC=%@formset[%h,tabs/lists/d2,additem,Third item]
+set RC=%@formset[%h,tabs/lists/d2,additem,Fourth item]
+
+set RC=%@formadd[%h,tabs/lists/l3,LABEL,490,60,200,28,CheckedListBox:]
+set RC=%@formadd[%h,tabs/lists/d3,CHECKEDLISTBOX,700,56,220,110,]
+set RC=%@formset[%h,tabs/lists/d3,additem,Feature Alpha]
+set RC=%@formset[%h,tabs/lists/d3,additem,Feature Beta]
+set RC=%@formset[%h,tabs/lists/d3,additem,Feature Gamma]
+
+set RC=%@formadd[%h,tabs/lists/l4,LABEL,20,190,200,28,ListView:]
+set RC=%@formadd[%h,tabs/lists/d4,LISTVIEW,230,186,340,130,]
+set RC=%@formset[%h,tabs/lists/d4,addcolumn,Name:150:text]
+set RC=%@formset[%h,tabs/lists/d4,addcolumn,Size:80:size]
+set RC=%@formset[%h,tabs/lists/d4,addcolumn,Type:80:text]
+set RC=%@formset[%h,tabs/lists/d4,additem,readme.txt:4 KB:Text]
+set RC=%@formset[%h,tabs/lists/d4,additem,photo.jpg:2 MB:Image]
+set RC=%@formset[%h,tabs/lists/d4,additem,data.csv:128 KB:Data]
+set RC=%@formset[%h,tabs/lists/d4,sort,Name:asc]
+
+set RC=%@formadd[%h,tabs/lists/l5,LABEL,20,336,200,28,TreeView:]
+set RC=%@formadd[%h,tabs/lists/d5,TREEVIEW,230,332,220,140,]
+set RC=%@formset[%h,tabs/lists/d5,addnode,Documents:Documents]
+set RC=%@formset[%h,tabs/lists/d5,addnode,Documents/Work:Work files]
+set RC=%@formset[%h,tabs/lists/d5,addnode,Documents/Personal:Personal]
+set RC=%@formset[%h,tabs/lists/d5,addnode,Music:Music]
+set RC=%@formset[%h,tabs/lists/d5,addnode,Music/Jazz:Jazz collection]
+
+set RC=%@formadd[%h,tabs/lists/l6,LABEL,490,190,200,28,DataGrid:]
+set RC=%@formadd[%h,tabs/lists/d6,DATAGRID,700,186,220,130,]
+set RC=%@formset[%h,tabs/lists/d6,addcolumn,Name:80:text]
+set RC=%@formset[%h,tabs/lists/d6,addcolumn,Value:70:text]
+set RC=%@formset[%h,tabs/lists/d6,addcolumn,Active:60:checkbox]
+set RC=%@formset[%h,tabs/lists/d6,addrow,Alpha:100:true]
+set RC=%@formset[%h,tabs/lists/d6,addrow,Beta:200:false]
+set RC=%@formset[%h,tabs/lists/d6,addrow,Gamma:300:true]
+
+:: ============================================================
+:: Tab 4: Text
+:: ============================================================
+set RC=%@formadd[%h,tabs/text,TABPAGE,0,0,0,0,Text]
+
+set RC=%@formadd[%h,tabs/text/l1,LABEL,20,16,200,28,Memo:]
+set RC=%@formadd[%h,tabs/text/d1,MEMO,230,16,600,200,This is a multiline MEMO control (TextBox with Multiline=true).\r\n\r\nIt supports:\r\n- Word wrap\r\n- Vertical scrolling\r\n- Read-only mode via the readonly prop\r\n- appendtext for live line-by-line updates\r\n- FORMPIPE for piping command output directly in]
+
+set RC=%@formadd[%h,tabs/text/l2,LABEL,20,236,200,28,RichMemo:]
+set RC=%@formadd[%h,tabs/text/richMemo,RICHMEMO,230,232,600,200,]
+set RC=%@formset[%h,tabs/text/richMemo,readonly,1]
+
+:: ============================================================
+:: Tab 5: Containers
+:: ============================================================
+set RC=%@formadd[%h,tabs/cont,TABPAGE,0,0,0,0,Containers]
+
+set RC=%@formadd[%h,tabs/cont/l1,LABEL,20,16,200,28,Panel:]
+set RC=%@formadd[%h,tabs/cont/d1,PANEL,230,16,600,64,]
+set RC=%@formadd[%h,tabs/cont/d1/b1,BUTTON,10,12,160,34,Inside panel]
+set RC=%@formadd[%h,tabs/cont/d1/b2,BUTTON,190,12,160,34,Also inside]
+
+set RC=%@formadd[%h,tabs/cont/l2,LABEL,20,104,200,28,SplitContainer:]
+set RC=%@formadd[%h,tabs/cont/d2,SPLITCONTAINER,230,100,600,110,]
+set RC=%@formset[%h,tabs/cont/d2,splitterdistance,72]
+set RC=%@formadd[%h,tabs/cont/d2/left,LABEL,10,10,240,28,Left pane content]
+set RC=%@formadd[%h,tabs/cont/d2/right,LABEL,10,10,240,28,Right pane content]
+
+set RC=%@formadd[%h,tabs/cont/l3,LABEL,20,234,200,28,Nested tabs:]
+set RC=%@formadd[%h,tabs/cont/inner,TABCONTROL,230,230,600,160,]
+set RC=%@formadd[%h,tabs/cont/inner/p1,TABPAGE,0,0,0,0,Page 1]
+set RC=%@formadd[%h,tabs/cont/inner/p1/lbl,LABEL,10,10,400,28,Content of nested tab page 1]
+set RC=%@formadd[%h,tabs/cont/inner/p2,TABPAGE,0,0,0,0,Page 2]
+set RC=%@formadd[%h,tabs/cont/inner/p2/lbl,LABEL,10,10,400,28,Content of nested tab page 2]
+
+set RC=%@formadd[%h,tabs/cont/note,LABEL,20,410,900,80,Containers can be nested arbitrarily. A Panel inside a Tab inside a SplitContainer works. Use the slash-id syntax: tabs/cont/d1/b1 addresses a button inside a panel inside a tab.]
+
+:: ============================================================
+:: Status bar
+:: ============================================================
+set RC=%@formadd[%h,sb,STATUSBAR,0,0,0,0,]
+set RC=%@formadd[%h,sb/msg,LABEL,0,0,0,0,39 control types / 216 stock icons in FormCast v%@formversion[]]
+set RC=%@formset[%h,sb/msg,spring,1]
+set RC=%@formadd[%h,sb/ver,LABEL,0,0,0,0,Menu + Toolbar + StatusBar are always visible]
+::  Status bar colors are set per-theme in :apply_theme
+return
+
+:after_render
+:: ============================================================
+:: Show and populate RichMemo (needs realized form)
+:: ============================================================
+set RC=%@formshow[%h]
+gosub :fill_richmemo
+
+:: ============================================================
+:: Event bindings
+:: ============================================================
+:: Event loop: drain events via FORMEVENTS on the script
+:: thread so gosub works. Toggle state is polled since
+:: change events may not always queue reliably.
+:: ============================================================
+set _lastTheme=
+set _lastDark=
+
+:event_loop
+  :: Poll toggles
+  set _curTheme=%@formget[%h,tglTheme,checked]
+  set _curDark=%@formget[%h,tglDark,checked]
+  iff "%_curTheme" != "%_lastTheme" .or. "%_curDark" != "%_lastDark" then
+    set _lastTheme=%_curTheme
+    set _lastDark=%_curDark
+    gosub :apply_theme
+  endiff
+  :: Drain queued click/close events
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    iff "%_kind" == "click" then
+      if "%_ctrl" == "d3" gosub :on_click
+      if "%_ctrl" == "exit" gosub :done
+      if "%_ctrl" == "about" gosub :on_about
+    endiff
+    if "%_kind" == "close" gosub :done
+  enddo
+  delay /m 200
+  goto :event_loop
+
+:on_click
+  set RC=%@formtaskdialog[Hello,You clicked the demo button!,ok,info]
+return
+
+:on_about
+  set RC=%@formtaskdialog[About,FormCast Control Showcase -- demonstrating all 39 visual control types.,ok,info]
+return
+
+:apply_theme
+  iff "%_curTheme" == "true" then
+    iff "%_curDark" == "true" then
+      set RC=%@formset[%h,.,theme,dark]
+      set RC=%@formset[%h,tabs/basic/lblThemeStatus,text,Theme: dark]
+      set RC=%@formset[%h,sb,backcolor,Highlight]
+      set RC=%@formset[%h,sb/msg,forecolor,HighlightText]
+      set RC=%@formset[%h,sb/ver,forecolor,HighlightText]
+    else
+      set RC=%@formset[%h,.,theme,light]
+      set RC=%@formset[%h,tabs/basic/lblThemeStatus,text,Theme: light]
+      set RC=%@formset[%h,sb,backcolor,Control]
+      set RC=%@formset[%h,sb/msg,forecolor,ControlText]
+      set RC=%@formset[%h,sb/ver,forecolor,ControlText]
+    endiff
+  else
+    set RC=%@formset[%h,.,theme,system]
+    set RC=%@formset[%h,tabs/basic/lblThemeStatus,text,Theme: system defaults]
+    set RC=%@formset[%h,sb,backcolor,Control]
+    set RC=%@formset[%h,sb/msg,forecolor,ControlText]
+    set RC=%@formset[%h,sb/ver,forecolor,ControlText]
+  endiff
+  :: Re-populate RichMemo with theme-appropriate colors
+  gosub :fill_richmemo
+return
+
+:fill_richmemo
+  :: Clear and refill with colors appropriate for current theme
+  set RC=%@formset[%h,tabs/text/richMemo,text,]
+  iff "%_curTheme" == "true" .and. "%_curDark" == "true" then
+    :: Dark mode: use light colors
+    set RC=%@formset[%h,tabs/text/richMemo,appendstyle,Build Output Log|bold]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:05] Compiling src/main.cs ...|LightSkyBlue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:06] Compiling src/utils.cs ...|LightSkyBlue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:06] Warning CS0168 in utils.cs line 42|#FFB347]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:07] Compiling src/forms.cs ...|LightSkyBlue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendstyle,  Build succeeded. 1 warning(s).|bold]
+  else
+    :: Light/system mode: use standard colors
+    set RC=%@formset[%h,tabs/text/richMemo,appendstyle,Build Output Log|bold]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:05] Compiling src/main.cs ...|Blue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:06] Compiling src/utils.cs ...|Blue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:06] Warning CS0168 in utils.cs line 42|Orange]
+    set RC=%@formset[%h,tabs/text/richMemo,appendcolor,  [14:32:07] Compiling src/forms.cs ...|Blue]
+    set RC=%@formset[%h,tabs/text/richMemo,appendstyle,  Build succeeded. 1 warning(s).|bold]
+  endiff
+return
+
+:done
+  set RC=%@formclose[%h]
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0

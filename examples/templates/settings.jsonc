@@ -1,0 +1,77 @@
+// settings.jsonc -- a multi-control settings dialog using a grid
+// layout with form-level prop bag entries that drive
+// FormLayoutFactory.
+//
+// 4 rows by 2 columns: each row is a label/edit pair plus an
+// OK/Cancel row spanning both columns at the bottom. The grid
+// dimensions are stored in the form-level prop bag because that's
+// what FormLayoutFactory.Create reads at @FORMRELAYOUT time.
+{
+  "$schema": "../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "settings",
+  "title": "Settings",
+  "x": 100,
+  "y": 100,
+  "width": 420,
+  "height": 240,
+  "layout": "grid",
+  "props": {
+    "grid_rows": "4",
+    "grid_cols": "2",
+    "grid_hgap": "8",
+    "grid_vgap": "6",
+    "grid_padding": "10"
+  },
+  "controls": [
+    {
+      "type": "LABEL", "id": "lblName",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "Name:",
+      "props": { "row": "0", "col": "0" }
+    },
+    {
+      "type": "EDIT",  "id": "txtName",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "",
+      "props": { "row": "0", "col": "1" }
+    },
+    {
+      "type": "LABEL", "id": "lblHost",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "Host:",
+      "props": { "row": "1", "col": "0" }
+    },
+    {
+      "type": "EDIT",  "id": "txtHost",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "localhost",
+      "props": { "row": "1", "col": "1" }
+    },
+    {
+      "type": "LABEL", "id": "lblPort",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "Port:",
+      "props": { "row": "2", "col": "0" }
+    },
+    {
+      "type": "EDIT",  "id": "txtPort",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "8080",
+      "props": { "row": "2", "col": "1" }
+    },
+    {
+      "type": "BUTTON", "id": "btnCancel",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "Cancel",
+      "props": { "row": "3", "col": "0" }
+    },
+    {
+      "type": "BUTTON", "id": "btnOK",
+      "x": 0, "y": 0, "width": 0, "height": 0,
+      "text": "OK",
+      "props": { "row": "3", "col": "1" }
+    }
+  ]
+}

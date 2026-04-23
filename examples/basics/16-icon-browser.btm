@@ -1,0 +1,141 @@
+@echo off
+setlocal
+::
+:: 16-icon-browser.btm -- Interactive stock icon browser
+:: =====================================================
+::
+:: Displays all FormCast stock icons in a categorized grid.
+:: Selecting an icon shows usage instructions in the memo
+:: at the top. Uses the FORMICONS command to enumerate icons
+:: dynamically from the DLL.
+::
+:: Demonstrates: @FORMLOAD, FORMICONS command, dynamic control
+:: creation, stockicon property, PANEL as scrollable container,
+:: FORMEVENTS event loop.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 16-icon-browser.btm
+::
+
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: Failed to load icon browser template.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+:: Populate the grid panel with icons from FORMICONS.
+:: Each category gets a styled header, then icon buttons
+:: arranged in rows of 8.
+set _col=0
+set _y=2
+set _count=0
+set _lastCat=
+set _btnNum=0
+
+do line in /p FORMICONS
+  :: Category header line starts with @
+  iff "%@left[1,%line]" == "@" then
+    set _cat=%@substr[%line,1]
+    :: Close out previous row if partially filled
+    iff %_col GT 0 then
+      set _col=0
+      set /a _y=%_y + 32
+    endiff
+    :: Add whitespace before category (except first)
+    iff "%_lastCat" != "" then
+      set /a _y=%_y + 10
+    endiff
+    set _lastCat=%_cat
+    :: Category header: full-width label with gray background
+    set /a _btnNum=%_btnNum + 1
+    set RC=%@formadd[%h,split/grid/hdr%_btnNum,LABEL,0,%_y,700,22,%_cat]
+    set RC=%@formset[%h,split/grid/hdr%_btnNum,backcolor,LightGray]
+    set RC=%@formset[%h,split/grid/hdr%_btnNum,font,Segoe UI:10:bold]
+    set /a _y=%_y + 26
+    set _col=0
+  else
+    :: Icon entry: category:name
+    set _name=%@word[1,%@replace[:, ,%line]]
+    set /a _btnNum=%_btnNum + 1
+    set /a _x=4 + (%_col * 84)
+    set RC=%@formadd[%h,split/grid/ib%_btnNum,BUTTON,%_x,%_y,80,28,%_name]
+    set RC=%@formset[%h,split/grid/ib%_btnNum,stockicon,%_name]
+    set RC=%@formset[%h,split/grid/ib%_btnNum,tooltip,%[_cat]:%_name]
+    set /a _col=%_col + 1
+    set /a _count=%_count + 1
+    iff %_col GE 8 then
+      set _col=0
+      set /a _y=%_y + 32
+    endiff
+  endiff
+enddo
+
+set RC=%@formset[%h,lblCount,text,%_count icons available]
+
+set RC=%@formshow[%h]
+set RC=%@formset[%h,split,splitterdistance,180]
+set RC=%@formfocus[%h]
+
+:: Event loop: detect icon button clicks
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    iff "%_kind" == "click" then
+      :: Check if it's an icon button (starts with ib)
+      iff "%@left[2,%_ctrl]" == "ib" then
+        :: Get category:name from the button's tooltip
+        set _tipval=%@formget[%h,split/grid/%_ctrl,tooltip]
+        iff "%_tipval" != "" then
+          set _cat=%@word[0,%@replace[:, ,%_tipval]]
+          set _icon=%@word[1,%@replace[:, ,%_tipval]]
+          gosub show_usage
+        endiff
+      endiff
+    endiff
+    if "%_kind" == "close" goto done
+  enddo
+  delay /m 200
+  goto loop
+
+:show_usage
+  :: Write usage to a temp file. echo with %% outputs literal %.
+  :: textfromfile reads the file without any TCC expansion.
+  set _tf=%TEMP\fc_icon_usage.tmp
+  > "%_tf" (
+    echo Icon:     %_icon
+    echo Category: %_cat
+    echo.
+    echo --- How to use ---
+    echo.
+    echo BTM - set icon on a control:
+    echo   set RC=%%@formset[%%h,myCtrl,stockicon,%_icon]
+    echo.
+    echo BTM - set icon on a toolbar button:
+    echo   set RC=%%@formset[%%h,tb/myBtn,stockicon,%_icon]
+    echo.
+    echo In a .jsonc template:
+    echo   "props": { "stockicon": "%_icon" }
+    echo.
+    echo Works on: Button, Label, PictureBox, CheckBox,
+    echo   RadioButton, LinkLabel, ToolStripButton
+  )
+  set RC=%@formset[%h,split/usage,textfromfile,%_tf]
+  del /q "%_tf" 2>nul
+return
+
+:done
+  set RC=%@formclose[%h]
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+  set h=%@formload[%_batchpath\templates\16-icon-browser.jsonc]
+  if "%h" == "" return
+  set RC=%@formset[%h,.,font,Segoe UI:10]
+  set RC=%@formset[%h,split/grid,autoscroll,1]
+return

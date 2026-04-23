@@ -1,0 +1,126 @@
+// 14-tabbed-settings.jsonc -- tabbed settings with grouped radios
+// ===============================================================
+//
+// Layout: TABCONTROL with three tabs (General, Editor, Advanced).
+// General has two GROUPBOXes for radio groups plus a checkbox.
+// Editor has a COMBOBOX and NUMERICUPDOWN.
+// Advanced has a DATETIMEPICKER.
+// OK/Cancel buttons sit below the tab control.
+// Dynamic operations (additem, selectedindex, min, max, value,
+// format, style, acceptbutton, cancelbutton) stay in the BTM.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "prefs",
+  "title": "Preferences",
+  "x": 200, "y": 120, "width": 440, "height": 340,
+  "controls": [
+    {
+      "type": "TABCONTROL", "id": "tabs",
+      "x": 8, "y": 8, "width": 420, "height": 260,
+      "children": [
+        {
+          "type": "TABPAGE", "id": "general",
+          "x": 0, "y": 0, "width": 0, "height": 0,
+          "text": "General",
+          "children": [
+            {
+              "type": "GROUPBOX", "id": "grpTheme",
+              "x": 12, "y": 12, "width": 180, "height": 80,
+              "text": "Theme",
+              "children": [
+                {
+                  "type": "RADIO", "id": "rLight",
+                  "x": 12, "y": 22, "width": 80, "height": 20,
+                  "text": "Light"
+                },
+                {
+                  "type": "RADIO", "id": "rDark",
+                  "x": 12, "y": 46, "width": 80, "height": 20,
+                  "text": "Dark"
+                }
+              ]
+            },
+            {
+              "type": "GROUPBOX", "id": "grpLang",
+              "x": 200, "y": 12, "width": 180, "height": 80,
+              "text": "Language",
+              "children": [
+                {
+                  "type": "RADIO", "id": "rEN",
+                  "x": 12, "y": 22, "width": 80, "height": 20,
+                  "text": "English"
+                },
+                {
+                  "type": "RADIO", "id": "rFR",
+                  "x": 12, "y": 46, "width": 80, "height": 20,
+                  "text": "French"
+                }
+              ]
+            },
+            {
+              "type": "CHECKBOX", "id": "cStartup",
+              "x": 12, "y": 105, "width": 300, "height": 20,
+              "text": "Launch at startup"
+            }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "editor",
+          "x": 0, "y": 0, "width": 0, "height": 0,
+          "text": "Editor",
+          "children": [
+            {
+              "type": "LABEL", "id": "lblFont",
+              "x": 12, "y": 16, "width": 80, "height": 20,
+              "text": "Font size:"
+            },
+            {
+              "type": "COMBOBOX", "id": "cmbFont",
+              "x": 100, "y": 12, "width": 100, "height": 24,
+              "text": ""
+            },
+            {
+              "type": "LABEL", "id": "lblTab",
+              "x": 12, "y": 50, "width": 80, "height": 20,
+              "text": "Tab width:"
+            },
+            {
+              "type": "NUMERICUPDOWN", "id": "nudTab",
+              "x": 100, "y": 46, "width": 60, "height": 24,
+              "text": ""
+            }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "advanced",
+          "x": 0, "y": 0, "width": 0, "height": 0,
+          "text": "Advanced",
+          "children": [
+            {
+              "type": "LABEL", "id": "lblDate",
+              "x": 12, "y": 16, "width": 80, "height": 20,
+              "text": "Start date:"
+            },
+            {
+              "type": "DATETIMEPICKER", "id": "dtpStart",
+              "x": 100, "y": 12, "width": 200, "height": 24,
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "BUTTON", "id": "btnOK",
+      "x": 260, "y": 278, "width": 80, "height": 28,
+      "text": "OK"
+    },
+    {
+      "type": "BUTTON", "id": "btnCancel",
+      "x": 348, "y": 278, "width": 80, "height": 28,
+      "text": "Cancel"
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+@echo off
+::
+:: formcast-designer.btm
+:: =====================
+::
+:: -- a scripted demonstration of the FormCast visual designer
+:: primitives that ship . This BTM is intentionally NOT an
+:: interactive designer; it drives the same primitives a future
+:: keyboard / mouse driven UI would use, end-to-end through the
+:: plugin and proves they round-trip cleanly via @FORMSAVE /
+:: @FORMLOAD.
+::
+:: What it does:
+:: 1. plugin /l (headless on so no window flashes)
+:: 2. open a target form with two controls
+:: 3. enable design_mode at the form level
+:: 4. select btn1, move it via `moveby`, then resize via `resizeby`
+:: 5. select btn2, set absolute position via `position`
+:: 6. read position and size back via FORMGET
+:: 7. save the modified form to a temp .jsonc file
+:: 8. close, then reload from the temp file
+:: 9. verify the loaded form has the modified positions
+:: 10. plugin /u
+::
+:: This is the v1 baseline for the visual designer story. and
+:: beyond will replace the scripted moves with real interactive
+:: drag/resize once the plugin grows the necessary mouse-event
+:: surface; until then, this BTM is the canonical reference for how
+:: the descriptor-side primitives compose.
+::
+:: timeout=120
+::
+
+on break gosub fc_cleanup
+
+setlocal
+
+set REPO=%@full[%_batchpath\..\..]
+set DLL=%@truename[%REPO\src\FormCast\bin\Release\net48\FormCast.dll]
+set TMPL=%TEMP\formcast-designer-out.jsonc
+
+echo ============================================================
+echo formcast-designer.btm -- scripted designer demo
+echo ============================================================
+echo.
+
+if not exist "%DLL" (
+ echo ERROR: FormCast.dll not built at %DLL
+ endlocal
+ quit 1
+)
+
+set FORMCAST_HEADLESS=1
+set FAILED=0
+
+plugin /l "%DLL"
+echo @FORMVERSION = %@formversion[]
+echo.
+::
+:: Step 1: open the target form
+::
+set H=%@formopen[form,designdemo,40,40,400,300]
+echo target form handle = %H
+iff "%H" == "" then
+ echo FAIL: FORMOPEN
+ set FAILED=1
+ goto cleanup
+endiff
+
+set RC=%@formadd[%H,btn1,BUTTON,10,10,80,24,Button 1]
+iff not "%RC" == "0" then
+ echo FAIL: add btn1 rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set RC=%@formadd[%H,btn2,BUTTON,10,50,80,24,Button 2]
+iff not "%RC" == "0" then
+ echo FAIL: add btn2 rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+::
+:: Step 2: enable design mode at the form level
+::
+set RC=%@formset[%H,.,design_mode,1]
+iff not "%RC" == "0" then
+ echo FAIL: design_mode rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set DM=%@formget[%H,.,design_mode]
+echo design_mode = %DM
+::
+:: Step 3: select btn1, move and resize via deltas
+::
+set RC=%@formset[%H,.,selected,btn1]
+iff not "%RC" == "0" then
+ echo FAIL: select btn1 rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set SEL=%@formget[%H,.,selected]
+echo selected = %SEL
+
+set RC=%@formset[%H,%SEL,moveby,15:5]
+iff not "%RC" == "0" then
+ echo FAIL: moveby rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set RC=%@formset[%H,%SEL,resizeby,20:0]
+iff not "%RC" == "0" then
+ echo FAIL: resizeby rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set POS=%@formget[%H,btn1,position]
+set SIZ=%@formget[%H,btn1,size]
+echo btn1 after move/resize: pos=%POS size=%SIZ
+iff not "%POS" == "25:15" then
+ echo FAIL: btn1 expected position 25:15 got %POS
+ set FAILED=1
+ goto cleanup
+endiff
+iff not "%SIZ" == "100:24" then
+ echo FAIL: btn1 expected size 100:24 got %SIZ
+ set FAILED=1
+ goto cleanup
+endiff
+::
+:: Step 4: select btn2 and set absolute position
+::
+set RC=%@formset[%H,.,selected,btn2]
+set RC=%@formset[%H,btn2,position,200:100]
+iff not "%RC" == "0" then
+ echo FAIL: position rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set POS=%@formget[%H,btn2,position]
+echo btn2 after position set: pos=%POS
+iff not "%POS" == "200:100" then
+ echo FAIL: btn2 expected position 200:100 got %POS
+ set FAILED=1
+ goto cleanup
+endiff
+::
+:: Step 5: save the modified form
+::
+del /q "%TMPL" 2>nul
+set RC=%@formsave[%H,%TMPL]
+iff not "%RC" == "0" then
+ echo FAIL: formsave rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+if not exist "%TMPL" (
+ echo FAIL: saved file does not exist at %TMPL
+ set FAILED=1
+ goto cleanup
+)
+::
+:: Step 6: close the original, reload from disk, verify
+::
+set RC=%@formclose[%H]
+iff not "%RC" == "0" then
+ echo FAIL: formclose rc=%RC
+ set FAILED=1
+ goto cleanup
+endiff
+
+set H2=%@formload[%TMPL]
+echo reloaded form handle = %H2
+iff "%H2" == "" then
+ echo FAIL: formload returned empty handle
+ set FAILED=1
+ goto cleanup
+endiff
+
+set POS1=%@formget[%H2,btn1,position]
+set SIZ1=%@formget[%H2,btn1,size]
+set POS2=%@formget[%H2,btn2,position]
+echo reloaded btn1: pos=%POS1 size=%SIZ1
+echo reloaded btn2: pos=%POS2
+
+iff not "%POS1" == "25:15" then
+ echo FAIL: reloaded btn1 position lost (got %POS1)
+ set FAILED=1
+endiff
+iff not "%SIZ1" == "100:24" then
+ echo FAIL: reloaded btn1 size lost (got %SIZ1)
+ set FAILED=1
+endiff
+iff not "%POS2" == "200:100" then
+ echo FAIL: reloaded btn2 position lost (got %POS2)
+ set FAILED=1
+endiff
+
+set RC=%@formclose[%H2]
+cleanup
+del /q "%TMPL" 2>nul
+echo.
+echo --- plugin /u ---
+plugin /u FormCast
+unset FORMCAST_HEADLESS
+echo.
+
+echo ============================================================
+echo formcast-designer.btm FAILED=%FAILED (0 = all pass)
+echo ============================================================
+
+endlocal
+quit %FAILED
+:fc_cleanup
+  endlocal
+ quit 130

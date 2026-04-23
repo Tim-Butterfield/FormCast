@@ -1,0 +1,89 @@
+@echo off
+setlocal
+::
+:: 11-pipe-output.btm -- pipe command output into a MEMO control
+:: =============================================================
+::
+:: Opens a form with a MEMO control and pipes the output of
+:: `dir /b` into it via the FORMPIPE streaming command. Each
+:: line of the command's stdout becomes a line in the MEMO.
+::
+:: Also demonstrates piping into a RICHMEMO with color: a second
+:: form captures `dir /s /b` output with each line colored Blue.
+::
+:: Demonstrates: FORMPIPE command, piping into MEMO, piping into
+:: RICHMEMO with a color argument, @FORMGET text to read back
+:: the accumulated content.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 11-pipe-output.btm
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+::
+:: Part 1: pipe dir /b into a MEMO
+::
+echo --- Part 1: dir /b piped into a MEMO ---
+gosub render_memo
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 11-pipe-memo.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Read dir output line by line into the MEMO via appendtext.
+:: (Plugin commands cannot be used on the right side of a TCC pipe.)
+do f in /a:-d "%_batchpath\*"
+  set RC=%@formset[%h,memo,appendtext,%@filename[%f]]
+enddo
+
+echo.
+set _memoText=%@formget[%h,memo,text]
+echo Captured text into the MEMO.
+set RC=%@formclose[%h]
+
+::
+:: Part 2: pipe into a RICHMEMO with color
+::
+echo --- Part 2: dir piped into a RICHMEMO with Blue color ---
+gosub render_richmemo
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 11-pipe-richmemo.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Read dir output line by line into the RICHMEMO with Blue color.
+do f in /a:-d "%_batchpath\*"
+  set RC=%@formset[%h,rm,appendcolor,%@filename[%f]|Blue]
+enddo
+
+set text=%@formget[%h,rm,text]
+echo Captured text into the RICHMEMO.
+set RC=%@formclose[%h]
+
+echo.
+echo Done.
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render_memo
+set h=%@formload[%_batchpath\templates\11-pipe-memo.jsonc]
+if "%h" == "" return
+set RC=%@formset[%h,memo,readonly,1]
+return
+
+:render_richmemo
+set h=%@formload[%_batchpath\templates\11-pipe-richmemo.jsonc]
+if "%h" == "" return
+set RC=%@formset[%h,rm,readonly,1]
+return

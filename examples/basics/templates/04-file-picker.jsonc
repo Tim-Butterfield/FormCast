@@ -1,0 +1,36 @@
+// 04-file-picker.jsonc -- navigable file picker with folder support
+// ================================================================
+//
+// Layout: path label at top, full-width listview in the middle,
+// Open and Cancel buttons at the bottom right.
+// The listview columns and all dynamic file loading stay in the BTM.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "picker",
+  "title": "Pick a file",
+  "x": 200, "y": 100, "width": 600, "height": 440,
+  "controls": [
+    {
+      "type": "LABEL", "id": "lblPath",
+      "x": 8, "y": 8, "width": 584, "height": 20,
+      "text": ""
+    },
+    {
+      "type": "LISTVIEW", "id": "lst",
+      "x": 8, "y": 32, "width": 584, "height": 350,
+      "text": ""
+    },
+    {
+      "type": "BUTTON", "id": "btnOpen",
+      "x": 408, "y": 390, "width": 80, "height": 28,
+      "text": "Open"
+    },
+    {
+      "type": "BUTTON", "id": "btnCancel",
+      "x": 496, "y": 390, "width": 80, "height": 28,
+      "text": "Cancel"
+    }
+  ]
+}

@@ -1,0 +1,279 @@
+@echo off
+::
+:: capture-readme-images.btm
+:: =========================
+::
+:: Capture README screenshots by calling each example's :render
+:: subroutine via GOSUB, then using @FORMSAVEIMAGE to capture the
+:: form. This keeps a single source of truth -- the form layout
+:: is defined in each example BTM, not duplicated here.
+::
+:: For examples that need dynamic content (file listings, styled
+:: text), the capture script populates it after calling :render.
+::
+:: The designer composite uses @FORMSAVECOMPOSITE for a three-
+:: window screenshot.
+::
+:: Usage:
+::   call examples\screenshots\capture-readme-images.btm
+::
+:: timeout=120
+::
+
+on break gosub fc_cleanup
+
+setlocal
+
+set REPO=%@full[%_batchpath\..\..]
+set DLL=%@truename[%REPO\src\FormCast\bin\Release\net48\FormCast.dll]
+set OUT=%REPO\docs\images
+set EXAMPLES=%REPO\examples\basics
+set DESIGNER=%REPO\examples\designer
+
+if not exist "%DLL" (
+  echo ERROR: FormCast.dll not built at %DLL
+  endlocal
+  quit 1
+)
+
+mkdir "%OUT" 2>nul
+
+set FORMCAST_HEADLESS=1
+set FORMCAST_DLL=%DLL
+set FAILED=0
+
+call "%REPO\examples\formcast-check.btm" load
+echo @FORMVERSION = %@formversion[]
+echo.
+
+::
+:: 0. Everything showcase
+:: Source: examples/basics/00-everything.btm
+::
+echo --- 0a. everything.png (light) ---
+gosub "%EXAMPLES\00-everything.btm" render
+set RC=%@formshow[%h]
+delay 2
+gosub "%EXAMPLES\00-everything.btm" fill_richmemo
+set _img=everything.png & gosub save_and_close
+
+echo --- 0b. everything-dark.png ---
+gosub "%EXAMPLES\00-everything.btm" render
+set RC=%@formshow[%h]
+set _curTheme=true
+set _curDark=true
+gosub "%EXAMPLES\00-everything.btm" apply_theme
+delay 2
+set _img=everything-dark.png & gosub save_and_close
+
+::
+:: 1. Hello world dialog
+:: Source: examples/basics/01-hello.btm
+::
+echo --- 1. hello.png ---
+gosub "%EXAMPLES\01-hello.btm" render
+set _img=hello.png & gosub capture
+
+::
+:: 2. Settings form
+:: Source: examples/basics/05-settings.btm
+::
+echo --- 2. settings.png ---
+gosub "%EXAMPLES\05-settings.btm" render
+set _img=settings.png & gosub capture
+
+::
+:: 3. File picker (LISTVIEW)
+:: Source: examples/basics/04-file-picker.btm
+:: Render builds the form; we populate with real directory data.
+::
+echo --- 3. listview.png ---
+gosub "%EXAMPLES\04-file-picker.btm" render
+set RC=%@formset[%h,lblPath,text,%EXAMPLES]
+pushd %EXAMPLES
+do f in /a:-d *
+  set fk=%@filesize[%f,k]
+  set fdate=%@filedate[%f,d]
+  set RC=%@formset[%h,lst,additem,%f:%fk KB:%fdate]
+enddo
+popd
+set RC=%@formset[%h,lst,sort,Name:asc]
+set _img=listview.png & gosub capture
+
+::
+:: 4. Multi-line MEMO editor
+:: Source: examples/basics/08-memo-notepad.btm
+::
+echo --- 4. memo.png ---
+gosub "%EXAMPLES\08-memo-notepad.btm" render
+set _img=memo.png & gosub capture
+
+::
+:: 5. Progress dialog
+:: Source: examples/basics/03-progress.btm
+:: Set progress to 70% for the screenshot.
+::
+echo --- 5. progress.png ---
+gosub "%EXAMPLES\03-progress.btm" render
+set RC=%@formset[%h,lbl,text,Copying files... 7 of 10]
+:: WinForms animates progress bars gradually. Setting value
+:: then stepping back by 1 forces immediate visual update
+:: (the "go past then back" trick bypasses the animation).
+set RC=%@formset[%h,pb,value,71]
+set RC=%@formset[%h,pb,value,70]
+set RC=%@formshow[%h]
+delay 2
+set _img=progress.png & gosub save_and_close
+
+::
+:: 6. RICHMEMO log viewer
+:: Source: examples/basics/12-log-viewer.btm
+:: Render the viewer form and populate with styled text.
+::
+echo --- 6. richmemo.png ---
+gosub "%EXAMPLES\12-log-viewer.btm" render_viewer
+set h=%hViewer
+set RC=%@formset[%h,.,title,Build Output]
+set RC=%@formshow[%h]
+delay /m 500
+set RC=%@formset[%h,rm,appendstyle,Build started at 14:32:05|bold]
+set RC=%@formset[%h,rm,appendcolor, -- Compiling src/main.cs|Blue]
+set RC=%@formset[%h,rm,appendcolor, -- Compiling src/utils.cs|Blue]
+set RC=%@formset[%h,rm,appendcolor, -- Warning CS0168 in utils.cs:42|Orange]
+set RC=%@formset[%h,rm,appendstyle, -- Build succeeded. 1 warning(s)|bold]
+set _img=richmemo.png & gosub save_and_close
+
+::
+:: 7. FORMPIPE: dir output piped into a MEMO
+:: Source: examples/basics/11-pipe-output.btm
+::
+echo --- 7. formpipe.png ---
+gosub "%EXAMPLES\11-pipe-output.btm" render_memo
+set RC=%@formshow[%h]
+delay /m 500
+pushd %EXAMPLES
+do f in /a:-d *
+  set RC=%@formset[%h,memo,appendtext,%f]
+enddo
+popd
+set _img=formpipe.png & gosub save_and_close
+
+::
+:: 8. Nested PANEL layout (IDE-shaped form)
+:: Source: examples/basics/13-ide-layout.btm
+::
+echo --- 8. nested.png ---
+gosub "%EXAMPLES\13-ide-layout.btm" render
+set _img=nested.png & gosub capture
+
+::
+:: 9. Visual designer -- three-window composite
+:: Uses @FORMSAVECOMPOSITE to capture all three windows.
+:: Loads from the same templates the real designer uses.
+::
+echo --- 9. designer.png (composite) ---
+:: Canvas with a few controls in design mode
+set hCanvas=%@formopen[form,untitled,330,80,500,420]
+set RC=%@formset[%hCanvas,.,title,Canvas - untitled]
+set RC=%@formset[%hCanvas,.,design_mode,1]
+set RC=%@formadd[%hCanvas,lblTitle,LABEL,20,20,200,20,Enter your name:]
+set RC=%@formadd[%hCanvas,txtName,EDIT,20,48,250,24,]
+set RC=%@formadd[%hCanvas,btnOK,BUTTON,200,88,80,28,OK]
+set RC=%@formadd[%hCanvas,btnCancel,BUTTON,290,88,80,28,Cancel]
+:: Toolbox from template
+set hTool=%@formload[%DESIGNER\templates\toolbox.jsonc]
+iff "%hTool" == "" then
+  echo ERROR: Failed to load toolbox template
+  set FAILED=1
+  goto :skip_designer
+endiff
+set RC=%@formset[%hTool,.,title,FormCast Designer]
+if exist "%DESIGNER\designer.ico" set RC=%@formset[%hTool,.,icon,%DESIGNER\designer.ico]
+:: Properties from template
+set hProps=%@formload[%DESIGNER\templates\properties.jsonc]
+iff "%hProps" == "" then
+  echo ERROR: Failed to load properties template
+  set FAILED=1
+  goto :skip_designer
+endiff
+:: Position windows side by side for composite
+set RC=%@formset[%hTool,.,position,20:80]
+set RC=%@formset[%hCanvas,.,position,330:80]
+set RC=%@formset[%hProps,.,position,840:80]
+:: Show all three (needed for DrawToBitmap on complex controls)
+set RC=%@formshow[%hCanvas]
+set RC=%@formshow[%hTool]
+set RC=%@formshow[%hProps]
+:: Select btnOK to show the design overlay
+set RC=%@formsimulate[%hCanvas,btnOK,mousedown,40:14]
+set RC=%@formsimulate[%hCanvas,btnOK,mouseup,40:14]
+:: Bind the PropertyGrid to show btnOK's properties
+set RC=%@formset[%hProps,propGrid,designtarget,%hCanvas:btnOK]
+:: Populate the document outline
+set RC=%@formset[%hProps,outline,text,]
+set RC=%@formset[%hProps,outline,addnode,Canvas:Canvas (4 controls)]
+set RC=%@formset[%hProps,outline,addnode,Canvas/lblTitle:lblTitle (LABEL)]
+set RC=%@formset[%hProps,outline,addnode,Canvas/txtName:txtName (EDIT)]
+set RC=%@formset[%hProps,outline,addnode,Canvas/btnOK:btnOK (BUTTON)]
+set RC=%@formset[%hProps,outline,addnode,Canvas/btnCancel:btnCancel (BUTTON)]
+set RC=%@formset[%hProps,outline,expandall,]
+:: Allow layout to settle before capture
+delay /m 500
+:: Composite screenshot of all three windows
+set RC=%@formsavecomposite[%OUT\designer.png,%hTool,%hCanvas,%hProps]
+echo rc=%RC (composite)
+if not "%RC" == "0" set FAILED=1
+:: Also capture just the canvas for the second screenshot
+set RC=%@formsaveimage[%hCanvas,%OUT\designer-canvas.png]
+echo rc=%RC (canvas)
+if not "%RC" == "0" set FAILED=1
+set RC=%@formclose[%hCanvas]
+set RC=%@formclose[%hTool]
+set RC=%@formclose[%hProps]
+:skip_designer
+
+::
+:: 10. Full app window with menu + toolbar + status bar
+:: Source: examples/basics/15-app-window.btm
+::
+echo --- 10. app-window.png ---
+gosub "%EXAMPLES\15-app-window.btm" render
+set _img=app-window.png & gosub capture
+
+::
+:: 11. Tabbed settings with grouped radios
+:: Source: examples/basics/14-tabbed-settings.btm
+::
+echo --- 11. tabbed.png ---
+gosub "%EXAMPLES\14-tabbed-settings.btm" render
+set _img=tabbed.png & gosub capture
+
+:cleanup
+echo.
+echo --- plugin /u ---
+call "%REPO\examples\formcast-check.btm" unload
+unset FORMCAST_HEADLESS
+echo.
+
+echo ============================================================
+echo capture-readme-images FAILED=%FAILED  (0 = all pass)
+echo ============================================================
+
+endlocal
+quit %FAILED
+
+:: ---- Capture helper: show, settle, save, close ----
+:: Usage: set _img=filename.png & gosub capture
+:capture
+  set RC=%@formshow[%h]
+  delay /m 500
+:save_and_close
+  set RC=%@formsaveimage[%h,%OUT\%_img]
+  echo rc=%RC
+  if not "%RC" == "0" set FAILED=1
+  set RC=%@formclose[%h]
+return
+
+:fc_cleanup
+    endlocal
+  quit 130

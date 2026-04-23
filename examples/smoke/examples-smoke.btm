@@ -1,0 +1,332 @@
+@echo off
+::
+:: examples-smoke.btm
+:: ==================
+::
+:: -- one BTM that smoke-tests the 18 worked examples from
+:: PLUGIN_DESIGN.md section 6. Each example becomes a tightly-
+:: scoped sequence that exercises the dispatch surface the
+:: example uses, and the BTM reports per-example PASS / SKIP /
+:: FAIL plus a final tally.
+::
+:: Examples that depend on features deferred past v1
+:: (cross-session global handles FORMFOCUS, TASKDIALOG,
+:: WM_* injection) are marked SKIP with a brief reason. The v1
+:: release ship criterion is "every supported example smoke-tests
+:: PASS"; SKIP entries do not count against PASS/FAIL.
+::
+:: timeout=300
+::
+
+on break gosub fc_cleanup
+
+setlocal
+
+set REPO=%@full[%_batchpath\..\..]
+set DLL=%@truename[%REPO\src\FormCast\bin\Release\net48\FormCast.dll]
+set FORMCAST_HEADLESS=1
+set PASS=0
+set FAIL=0
+set SKIP=0
+
+if not exist "%DLL" (
+ echo ERROR: FormCast.dll not built at %DLL
+ endlocal
+ quit 1
+)
+
+plugin /l "%DLL"
+echo @FORMVERSION = %@formversion[]
+echo.
+::
+:: 6.1 Hello, button
+::
+echo --- 6.1 Hello, button ---
+set H=%@formopen[form,hello,200,200,300,120]
+set RC=%@formadd[%H,lbl1,LABEL,10,10,260,20,What is your name?]
+set RC=%@formadd[%H,txt1,EDIT,10,35,260,22,]
+set RC=%@formadd[%H,btn1,BUTTON,200,65,70,25,OK]
+set RC=%@formshow[%H]
+iff "%RC" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: rc=%RC
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.2 Async dispatch via ON CONDITION (uses bit 32 )
+::
+echo --- 6.2 Async dispatch via ON CONDITION ---
+set H=%@formopen[form,dash,100,100,400,300]
+set RC=%@formadd[%H,btnRefresh,BUTTON,10,10,80,25,Refresh]
+set RC=%@formsimulate[%H,btnRefresh,click]
+set S=%@formstate[%H]
+set /a B32=%S %% 64 / 32
+iff "%B32" == "1" then
+ set /a PASS=%PASS + 1
+ echo PASS state=%S
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: events_pending bit not set after simulate
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.3 @FORMBIND declarative event handlers
+::
+echo --- 6.3 @FORMBIND ---
+set H=%@formopen[form,picker,200,200,300,150]
+set RC=%@formadd[%H,btnOK,BUTTON,10,10,80,25,OK]
+set RC=%@formadd[%H,btnCancel,BUTTON,100,10,80,25,Cancel]
+set RC=%@formbind[%H,btnOK,click,echo bound]
+set RC2=%@formbind[%H,btnCancel,click,echo bound2]
+iff "%RC" == "0" .and. "%RC2" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.4 Stream events into a DO loop
+::
+echo --- 6.4 FORMEVENTS DO loop ---
+set H=%@formopen[form,log,0,0,400,300]
+set RC=%@formadd[%H,btn,BUTTON,5,5,80,24,Go]
+set RC=%@formsimulate[%H,btn,click]
+set COUNT=0
+do ev in /p formevents %H
+ set /a COUNT=%COUNT + 1
+enddo
+iff "%COUNT" == "1" then
+ set /a PASS=%PASS + 1
+ echo PASS drained=%COUNT
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: expected 1 event, got %COUNT
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.5 Cross-session shared dashboard
+::
+echo --- 6.5 Global\ shared dashboard ---
+set /a SKIP=%SKIP + 1
+echo SKIP: requires Phase 10.4 IRemoteFormRegistry (cross-session)
+echo.
+::
+:: 6.6 Focus ping-pong with the TCC console
+::
+echo --- 6.6 Focus ping-pong ---
+set H=%@formopen[form,ed,100,100,500,400]
+set RC=%@formadd[%H,memo,MEMO,10,10,470,340,]
+set RC=%@formsimulate[%H,memo,focus]
+:: Verify the focus event landed in the queue via FORMSTATE bit 32.
+set S=%@formstate[%H]
+set /a B32=%S %% 64 / 32
+iff "%B32" == "1" then
+ set /a PASS=%PASS + 1
+ echo PASS focus event in queue (state=%S)
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: focus event not captured (state=%S)
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.7 Composing with TCC built-ins
+::
+echo --- 6.7 Composing with TCC built-ins ---
+set H=%@formopen[form,compose,10,10,300,200]
+set RC=%@formadd[%H,lbl,LABEL,5,5,200,20,%_date %_time]
+iff "%RC" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.8 Layering on TASKDIALOG
+::
+echo --- 6.8 TASKDIALOG layering ---
+set /a SKIP=%SKIP + 1
+echo SKIP: TASKDIALOG control type not in v1
+echo.
+::
+:: 6.9 Injecting a key sequence into a focused form
+::
+echo --- 6.9 Inject key sequence ---
+set H=%@formopen[form,kf,10,10,300,200]
+set RC=%@formadd[%H,txt,EDIT,5,5,250,24,]
+set RC=%@formsimulate[%H,txt,keypress,A]
+set S=%@formstate[%H]
+set /a B32=%S %% 64 / 32
+iff "%B32" == "1" then
+ set /a PASS=%PASS + 1
+ echo PASS keypress event in queue (state=%S)
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: keypress event not captured (state=%S)
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.10 Posting a WM_* message to a plugin form
+::
+echo --- 6.10 WM_* injection ---
+set /a SKIP=%SKIP + 1
+echo SKIP: WM_* injection surface not in v1
+echo.
+::
+:: 6.11 Name and address collection form
+::
+echo --- 6.11 Name and address form ---
+set H=%@formopen[form,addr,10,10,400,300]
+set RC=%@formadd[%H,lblN,LABEL,5,5,80,20,Name:]
+set RC=%@formadd[%H,txtN,EDIT,90,5,280,24,]
+set RC=%@formadd[%H,lblA,LABEL,5,35,80,20,Address:]
+set RC=%@formadd[%H,memA,MEMO,90,35,280,80,]
+set RC=%@formadd[%H,btnSave,BUTTON,290,130,80,25,Save]
+set NAME=%@formget[%H,txtN,text]
+iff "%RC" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.12 Sortable multi-column file picker (LISTVIEW)
+::
+echo --- 6.12 LISTVIEW file picker ---
+set H=%@formopen[form,picker,10,10,720,500]
+set RC=%@formadd[%H,lst,LISTVIEW,10,35,700,400,]
+set RC=%@formset[%H,lst,addcolumn,Name:320:text]
+set RC=%@formset[%H,lst,addcolumn,Size:100:number]
+set RC=%@formset[%H,lst,addcolumn,Modified:220:date]
+set RC=%@formset[%H,lst,additem,readme.txt:1024:2026-04-01]
+set RC=%@formset[%H,lst,additem,test.bin:2048:2026-04-09]
+iff "%RC" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.13 Progress dialog with cancel
+::
+echo --- 6.13 Progress dialog with cancel ---
+set /a SKIP=%SKIP + 1
+echo SKIP: PROGRESSBAR control type not in v1
+echo.
+::
+:: 6.14 Settings form with radio buttons and checkboxes
+::
+echo --- 6.14 Settings (radio + check) ---
+set H=%@formopen[form,settings,10,10,400,300]
+set RC=%@formadd[%H,lbl,LABEL,5,5,200,20,Theme:]
+set RC=%@formadd[%H,r1,RADIO,5,30,80,20,Light]
+set RC=%@formadd[%H,r2,RADIO,90,30,80,20,Dark]
+set RC=%@formadd[%H,c1,CHECKBOX,5,60,200,20,Enable autosave]
+set RC=%@formsimulate[%H,r1,check]
+set RC=%@formsimulate[%H,c1,check]
+set S=%@formstate[%H]
+set /a B32=%S %% 64 / 32
+iff "%B32" == "1" then
+ set /a PASS=%PASS + 1
+ echo PASS change events in queue (state=%S)
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: change events not in queue (state=%S)
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.15 Streaming log viewer with selectable / copyable text
+::
+echo --- 6.15 MEMO log viewer ---
+set H=%@formopen[form,log,10,10,500,400]
+set RC=%@formadd[%H,memo,MEMO,5,5,490,390,Initial log content]
+set RC=%@formset[%H,memo,readonly,1]
+set TEXT=%@formget[%H,memo,text]
+iff "%TEXT" == "Initial log content" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+ echo FAIL: text=%TEXT
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.16 Syntax-highlighted log viewer (RICHMEMO)
+::
+echo --- 6.16 RICHMEMO syntax highlight ---
+set H=%@formopen[form,rlog,10,10,500,400]
+set RC=%@formadd[%H,rm,RICHMEMO,5,5,490,390,plain log line]
+iff "%RC" == "0" then
+ set /a PASS=%PASS + 1
+ echo PASS
+else
+ set /a FAIL=%FAIL + 1
+endiff
+set RC=%@formclose[%H]
+echo.
+::
+:: 6.17 Loading, modifying, and saving form templates
+::
+echo --- 6.17 FORMLOAD / FORMSAVE templates ---
+set TPL=%TEMP\fc-smoke-617.jsonc
+del /q "%TPL" 2>nul
+set H=%@formopen[form,tpl,10,10,200,100]
+set RC=%@formadd[%H,btn,BUTTON,5,5,80,24,X]
+set RC=%@formsave[%H,%TPL]
+set RC=%@formclose[%H]
+set H2=%@formload[%TPL]
+iff "%H2" == "" then
+ set /a FAIL=%FAIL + 1
+ echo FAIL: formload empty
+else
+ set /a PASS=%PASS + 1
+ echo PASS reloaded handle=%H2
+ set RC=%@formclose[%H2]
+endiff
+del /q "%TPL" 2>nul
+echo.
+::
+:: 6.18 Visual form designer (formcast-designer-smoke.btm)
+::
+echo --- 6.18 Visual designer (covered by BTM) ---
+set /a SKIP=%SKIP + 1
+echo SKIP: covered by examples/smoke/formcast-designer-smoke.btm bridge probe
+echo.
+cleanup
+echo --- plugin /u ---
+plugin /u FormCast
+unset FORMCAST_HEADLESS
+echo.
+
+set /a TOTAL=%PASS + %FAIL + %SKIP
+echo ============================================================
+echo examples-smoke total=%TOTAL pass=%PASS fail=%FAIL skip=%SKIP
+echo ============================================================
+
+iff %FAIL GT 0 then
+ endlocal
+ quit 1
+endiff
+endlocal
+quit 0
+:fc_cleanup
+  endlocal
+ quit 130

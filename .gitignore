@@ -1,0 +1,15 @@
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+
+[Tt]est[Rr]esult*/
+coverage/
+
+*.log
+
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

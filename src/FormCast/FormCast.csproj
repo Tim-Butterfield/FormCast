@@ -1,0 +1,171 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Target the .NET Framework version that TC-DotNetPluginHost64.dll
+ hosts. The host is a C++/CLI bridge that loads us into a .NET 4.x
+ CLR; net48 is the highest supported framework moniker. -->
+    <TargetFramework>net48</TargetFramework>
+
+    <!-- AnyCPU class library, but explicitly opt out of the WoW64 32-bit
+ preference flag. TC-DotNetPluginHost64.dll is a 64-bit native
+ host, and the loaded assembly must run as 64-bit in that process. -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+
+    <!-- Modern C# language even on net48 -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <!-- Quality bar for a public repo -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+
+    <!-- Output -->
+    <AssemblyName>FormCast</AssemblyName>
+    <RootNamespace>FormCast</RootNamespace>
+
+    <!-- Package / assembly metadata (SDK-style projects synthesize
+ AssemblyInfo from these) -->
+    <Product>FormCast</Product>
+    <Description>A .NET plugin for TCC v36+ that lets BTM batch scripts create and interact with native Windows GUI forms.</Description>
+    <Company>Tim Butterfield</Company>
+    <Authors>Tim Butterfield</Authors>
+    <Copyright>Copyright (c) 2026 Tim Butterfield</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Tim-Butterfield/FormCast</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Tim-Butterfield/FormCast</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Versioning. Bump on every public release.
+ Keep in sync with PluginVersion in src/FormCast/Plugin.cs. -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+
+    <!-- Deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+
+    <!-- System.Text.Json + its transitive dependencies must
+ land in the bin output directory next to FormCast.dll so
+ TC-DotNetPluginHost64.dll's reflection-load resolver can
+ find them via the standard CLR application-base probe path.
+ Without this flag, an SDK-style net48 project leaves NuGet
+ resolved assemblies in the package cache only, and the
+ plugin DLL ships alone (which would crash the host the
+ first time anything in FormCast touches a JSON type). -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Disable the implicit obj/bin folders being scanned for sources
+ (paranoia: keeps the build hermetic if someone leaves stale files) -->
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <!-- Suppress a few analyzer warnings that don't apply to a TCC plugin
+ class library:
+
+ CA1014 (assemblies should be marked CLSCompliant): irrelevant.
+ Plugins are loaded by name reflection, not as a CLS-callable lib.
+
+ CA1062 (validate args for public methods): the public methods
+ on this assembly are interface methods that receive their args
+ from TCC's host, never from third-party callers, so a null or
+ malformed arg would itself be a host bug.
+
+ CA1838 (avoid StringBuilder parameters for P/Invokes): the JP
+ Software TakeCommand.Plugin SDK contract REQUIRES StringBuilder
+ parameters on every plugin dispatch method (f_MYFUNC, _MYVAR,
+ MYCOMMAND). Our internal P/Invokes use the same type for
+ consistency with the public surface. The performance impact
+ (an extra string copy per call) is negligible at the call
+ rates a plugin sees.
+
+ CA1707 (identifiers should not contain underscores): the JP
+ Software TCC plugin SDK REQUIRES the f_ prefix on variable
+ function methods because the corresponding TCC name (e.g.
+ @FORMVERSION) starts with @, which is not a valid C#
+ identifier character. f_FORMVERSION is the only legal way to
+ expose @FORMVERSION through the SDK contract. Internal
+ variable methods take a leading _ for the same reason.
+
+ CA1822 (mark members as static when they do not access
+ instance state): the host (TC-DotNetPluginHost64.dll) creates
+ exactly one Plugin instance and dispatches all variable
+ function and command calls as instance methods on that
+ object. Making them static would break dispatch. The
+ analyzer cannot see the host-side reflection contract.
+
+ CA1859 (use concrete type for fields for performance): we
+ deliberately type _localRegistry as IFormRegistry rather than
+ the concrete LocalFormRegistry so that a future version
+ can substitute a GlobalFormRegistry
+ (which talks to FormCast.Host.exe via named pipes) without
+ touching the dispatch methods. Dependency inversion is the
+ intent; the analyzer's perf advice is correct in isolation
+ but fights the architecture.
+
+ CA1001 (types that own disposable fields should be disposable):
+ the Plugin class owns _callbackWorker (an IDisposable), but
+ its lifecycle is controlled entirely by the host through the
+ ITCCPlugin contract: Initialize starts the worker, Shutdown
+ stops and disposes it. The host never invokes Dispose, and
+ making Plugin implement IDisposable would add a second
+ teardown path that the host does not call (a footgun, not
+ a fix). Suppressing locally is the cleanest option.
+
+ Add to this list with a clear reason if you suppress more. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1001;CA1014;CA1062;CA1707;CA1822;CA1838;CA1859</NoWarn>
+  </PropertyGroup>
+
+  <!-- WinForms. The GuiHostThread runs an Application.Run message
+ loop on a dedicated STA thread; the FormRealizer and @FORM*
+ dispatch surface construct real Form objects on it. net48 ships
+ System.Windows.Forms as a framework reference; we add it
+ explicitly here so the SDK project file picks it up. -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <!-- WPF + ElementHost for the RICHMEMO control. The RICHMEMO
+ is a System.Windows.Controls.RichTextBox embedded in a WinForms
+ form via WindowsFormsIntegration.ElementHost. WPF assemblies
+ are part of .NET Framework 4.8 and ship with the framework
+ install; no NuGet package is needed. The forced-shutdown
+ dispose-order constraint is documented inline in
+ Forms/Controls/RichMemoBuilder.cs. -->
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
+  </ItemGroup>
+
+  <!-- System.Text.Json for JSONC parsing (line + block comments,
+ trailing commas). Version 8.0.5 is the latest patch in the 8.x line that
+ still ships netstandard2.0, which net48 consumes. Required
+ transitive deps (System.Memory, System.Buffers, System.Numerics.Vectors,
+ System.Runtime.CompilerServices.Unsafe, System.Text.Encodings.Web,
+ System.Threading.Tasks.Extensions, Microsoft.Bcl.AsyncInterfaces)
+ are pulled in by the package and copied next to FormCast.dll via
+ CopyLocalLockFileAssemblies above. -->
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <!-- Expose internal helpers to the FormCast.Tests assembly so
+ unit tests can exercise them directly without forcing the
+ helpers to public API. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>FormCast.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <!-- the FormCast.Host project consumes
+ FormCast.Ipc.PipeProtocol via ProjectReference. The type is
+ internal so the host needs explicit visibility. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>FormCast.Host</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

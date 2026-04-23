@@ -1,0 +1,50 @@
+@echo off
+setlocal
+::
+:: 03-progress.btm -- progress bar driven by a do loop
+:: ===================================================
+::
+:: Opens a small dialog with a label and a progress bar, then
+:: walks the bar from 0 to 100 in 10 steps, updating the value
+:: between each step. Demonstrates the PROGRESSBAR control
+:: type and the FORMSET text/value pseudo-prop pattern for live
+:: control updates.
+::
+:: Demonstrates: @FORMOPEN, @FORMADD PROGRESSBAR, FORMSET min /
+:: max / value pseudo-props, do-loop driven control updates.
+::
+:: Note: in v1.0 PROGRESSBAR's `value` is a descriptor-side
+:: pseudo-prop. To push live updates to the realized control
+:: you need to call FORMRELAYOUT or close+reopen; this script
+:: shows the descriptor mutation cycle.
+::
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+set i=0
+do while %i LT 100
+ set /a i=%i + 10
+ set RC=%@formset[%h,pb,value,%i]
+ delay /m 200
+ echo step %i / 100
+enddo
+
+set RC=%@formclose[%h]
+echo done
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:: ---- Build the form (called by main and by capture script) ----
+:render
+  set h=%@formopen[form,prog,200,200,300,120]
+  set RC=%@formset[%h,.,title,Working...]
+  set RC=%@formadd[%h,lbl,LABEL,12,12,280,20,Processing files...]
+  set RC=%@formadd[%h,pb,PROGRESSBAR,12,40,280,24,]
+  set RC=%@formset[%h,pb,min,0]
+  set RC=%@formset[%h,pb,max,100]
+  set RC=%@formset[%h,pb,value,0]
+return

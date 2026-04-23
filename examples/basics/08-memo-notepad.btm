@@ -1,0 +1,53 @@
+@echo off
+setlocal
+::
+:: 08-memo-notepad.btm -- a simple multiline text editor
+:: ====================================================
+::
+:: Opens a form with a single MEMO (multiline TextBox) and a
+:: Save button. When the user clicks Save, the MEMO's text is
+:: read back via @FORMGET and echoed. This demonstrates the
+:: simplest possible text-entry scenario beyond a single-line
+:: EDIT.
+::
+:: Demonstrates: MEMO control type, @FORMGET text on a multiline
+:: control, FORMEVENTS on a Save button.
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Event loop
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "btnSave" goto :save
+    if "%_kind" == "close" goto :done
+  enddo
+  delay /m 200
+  goto :loop
+
+:: ---- Build the form (called by main and by capture script) ----
+:render
+  set h=%@formopen[form,notepad,200,150,420,300]
+  set RC=%@formset[%h,.,title,Quick Note]
+  set RC=%@formadd[%h,memo,MEMO,8,8,400,230,Type your note here...]
+  set RC=%@formadd[%h,btnSave,BUTTON,320,248,80,28,Save]
+return
+
+:save
+set note=%@formget[%h,memo,text]
+echo.
+echo --- saved note ---
+echo %note
+echo ---
+
+:done
+set RC=%@formclose[%h]
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0

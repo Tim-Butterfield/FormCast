@@ -1,0 +1,34 @@
+@echo off
+setlocal
+::
+:: 02-confirm.btm -- yes/no/cancel confirmation dialog
+:: ===================================================
+::
+:: Pops a native task dialog with three buttons and prints which
+:: one the user clicked. Useful as a building block for any
+:: script that needs user confirmation before doing something
+:: destructive (`del /s`, `format`, etc).
+::
+:: Demonstrates: @FORMTASKDIALOG with the yesnocancel button set
+:: and the question icon. Returns 0=yes, 1=no, 2=cancel/close.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 02-confirm.btm
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+set rc=%@formtaskdialog[Save changes?,You have unsaved changes. Save before closing?,yesnocancel,question]
+echo dialog returned %rc
+
+iff "%rc" == "0" then
+  echo (would save changes here)
+elseiff "%rc" == "1" then
+  echo (discarding changes)
+else
+  echo (cancelled -- staying open)
+endiff
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0

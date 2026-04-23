@@ -1,0 +1,68 @@
+@echo off
+setlocal
+::
+:: 06-template.btm -- saving and reloading a JSONC template
+:: ========================================================
+::
+:: Builds a small form, saves the descriptor to a JSONC file,
+:: closes the form, then reloads the template into a fresh
+:: handle. Verifies that every field survived the round trip.
+::
+:: Demonstrates: @FORMSAVE / @FORMLOAD, the JSONC template
+:: format, the round-trip stability that the regression
+:: pins.
+::
+:: Run with:
+:: plugin /l C:\path\to\FormCast.dll
+:: call 06-template.btm
+::
+:: This is the foundation of the "build once, ship many"
+:: pattern: a designer saves a template; an
+:: end-user script just calls @FORMLOAD with optional
+:: vars to parameterize.
+::
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+set tpl=%TEMP\fc-template-demo.jsonc
+del /q "%tpl" 2>nul
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+delay 1
+
+set RC=%@formsave[%h,%tpl]
+echo formsave rc=%RC
+
+set RC=%@formclose[%h]
+
+if not exist "%tpl" (
+ echo FAIL: template not written
+ call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+)
+
+set h2=%@formload[%tpl]
+echo reloaded handle = %h2
+
+set v=%@formget[%h2,txt,text]
+echo reloaded textbox value = %v
+:: Show the reloaded form to prove it round-tripped.
+set RC=%@formset[%h2,.,title,Reloaded from template]
+set RC=%@formshow[%h2]
+set RC=%@formfocus[%h2]
+delay 2
+
+set RC=%@formclose[%h2]
+del /q "%tpl" 2>nul
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+  set h=%@formopen[form,demo,100,100,400,200]
+  set RC=%@formset[%h,.,title,Template demo]
+  set RC=%@formadd[%h,lbl,LABEL,12,12,360,20,Hello from a template]
+  set RC=%@formadd[%h,txt,EDIT,12,40,360,24,Initial value]
+  set RC=%@formadd[%h,btn,BUTTON,300,80,80,28,OK]
+return

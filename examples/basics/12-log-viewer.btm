@@ -1,0 +1,132 @@
+@echo off
+setlocal
+::
+:: 12-log-viewer.btm -- pick a file, then view it with syntax color
+:: ================================================================
+::
+:: Two-window workflow:
+::   1. A file picker dialog (LISTVIEW) lets the user select a file
+::      from the current directory.
+::   2. The selected file's contents are displayed in a RICHMEMO
+::      control with regex-based syntax highlighting (lines
+::      containing "error" in red, "warning" in orange, everything
+::      else in default color).
+::
+:: Demonstrates: multi-window workflow, LISTVIEW for file selection,
+:: RICHMEMO with appendcolor for per-line coloring, loadrules for
+:: regex highlighting, @FORMGET selecteditem, reading a file with
+:: TCC's `do line in /p type`.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 12-log-viewer.btm
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+::
+:: Step 1: file picker
+::
+set _listdir=%_batchpath
+gosub render_picker
+iff "%hPicker" == "" then
+  echo ERROR: @FORMLOAD failed for 12-picker.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+:: List .btm files from the examples directory (not CWD which
+:: may be C:\ when launched from Explorer).
+do f in /a:-d "%_listdir\*.btm"
+  set fk=%@filesize["%f",k]
+  set fdate=%@filedate["%f",d]
+  set RC=%@formset[%hPicker,lst,additem,%@filename[%f]:%fk KB:%fdate]
+enddo
+set RC=%@formset[%hPicker,lst,sort,Name:asc]
+
+set RC=%@formshow[%hPicker]
+set RC=%@formfocus[%hPicker]
+
+:picker_loop
+  do ev in /p formevents %hPicker
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "btnOpen" goto :on_pick
+    if "%_kind" == "dblclick" .and. "%_ctrl" == "lst" goto :on_pick
+    if "%_kind" == "click" .and. "%_ctrl" == "btnCancel" goto :on_cancel
+    if "%_kind" == "close" goto :on_cancel
+  enddo
+  delay /m 200
+  goto :picker_loop
+
+::
+:: Step 2: open the selected file in a RICHMEMO viewer
+::
+:on_pick
+  set picked=%@formget[%hPicker,lst,selecteditem]
+  iff "%picked" == "" then
+    echo No file selected.
+    goto :picker_loop
+  endiff
+  if isdir "%picked" goto :picker_loop
+  set RC=%@formclose[%hPicker]
+
+  gosub render_viewer
+  iff "%hViewer" == "" then
+    echo ERROR: @FORMLOAD failed for 12-viewer.jsonc
+    call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+  endiff
+
+  set RC=%@formset[%hViewer,.,title,Log Viewer: %picked]
+  set RC=%@formshow[%hViewer]
+  set RC=%@formfocus[%hViewer]
+
+  :: Read the file line by line and color based on content.
+  :: Lines with "error" get Red, "warning" gets Orange,
+  :: everything else gets DarkSlateGray.
+  do line in /p type "%_listdir\%picked"
+    set lower=%@lower[%line]
+    iff "%@index[%lower,error]" != "-1" then
+      set RC=%@formset[%hViewer,rm,appendcolor,%line|Red]
+    elseiff "%@index[%lower,warning]" != "-1" .or. "%@index[%lower,warn]" != "-1" then
+      set RC=%@formset[%hViewer,rm,appendcolor,%line|Orange]
+    else
+      set RC=%@formset[%hViewer,rm,appendcolor,%line|DarkSlateGray]
+    endiff
+  enddo
+
+:viewer_loop
+  do ev in /p formevents %hViewer
+    set _kind=%@word[1,%ev]
+    if "%_kind" == "close" goto :on_viewer_close
+  enddo
+  delay /m 200
+  goto :viewer_loop
+
+:on_viewer_close
+  set RC=%@formclose[%hViewer]
+  echo Viewer closed.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+:on_cancel
+  set RC=%@formclose[%hPicker]
+  echo Cancelled.
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render_picker
+set hPicker=%@formload[%_batchpath\templates\12-picker.jsonc]
+if "%hPicker" == "" return
+set RC=%@formset[%hPicker,lblPath,text,%_listdir]
+set RC=%@formset[%hPicker,lst,addcolumn,Name:300:text]
+set RC=%@formset[%hPicker,lst,addcolumn,Size:100:size]
+set RC=%@formset[%hPicker,lst,addcolumn,Modified:80:date]
+return
+
+:render_viewer
+set hViewer=%@formload[%_batchpath\templates\12-viewer.jsonc]
+if "%hViewer" == "" return
+set RC=%@formset[%hViewer,rm,readonly,1]
+return

@@ -1,0 +1,39 @@
+FormCast -- WinForms GUI plugin for TCC v36
+============================================
+
+Installation:
+
+  1. Copy the bin\ folder contents to a location on your machine
+     (e.g. C:\FormCast\bin\)
+
+  2. Set the FORMCAST_DLL environment variable to the full path
+     of FormCast.dll:
+
+       set FORMCAST_DLL=C:\FormCast\bin\FormCast.dll
+
+     Add this to your TCSTART.btm or system environment variables
+     for persistence.
+
+  3. Run any example:
+
+       call examples\basics\01-hello.btm
+
+     Or double-click a .btm file from Windows Explorer.
+
+  4. See docs\Quickstart.md for a full getting-started guide.
+
+Requirements:
+  - JP Software TCC v36 (or later)
+  - .NET Framework 4.8 (included with Windows 10/11)
+
+Documentation:
+  docs\FunctionReference.md  -- Complete API reference
+  docs\Tutorial.md           -- Step-by-step tutorial
+  docs\DesignerGuide.md      -- Visual designer guide
+  docs\Architecture.md       -- Technical architecture
+
+Icon Browser:
+  examples\basics\16-icon-browser.btm  -- Browse all 200+ stock icons
+
+Visual Designer:
+  examples\designer\formcast-visual-designer.btm

@@ -1,0 +1,267 @@
+// toolbox.jsonc -- Designer toolbox window template
+// Tabbed control palette with stock icons per control type.
+// Loaded by formcast-visual-designer.btm via @FORMLOAD.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "designer",
+  "title": "Toolbox",
+  "x": 20, "y": 80, "width": 300, "height": 420,
+  "controls": [
+    {
+      "type": "TOOLBAR", "id": "tb2",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "BUTTON", "id": "tbAlignL",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_left" } },
+        { "type": "BUTTON", "id": "tbAlignR",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_right" } },
+        { "type": "BUTTON", "id": "tbAlignT",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_top" } },
+        { "type": "BUTTON", "id": "tbAlignB",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_bottom" } },
+        { "type": "BUTTON", "id": "tbAlignHC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_hcenter" } },
+        { "type": "BUTTON", "id": "tbAlignVC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "align_vcenter" } },
+        { "type": "SEPARATOR", "id": "sepA1", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbDistH",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "dist_horizontal" } },
+        { "type": "BUTTON", "id": "tbDistV",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "dist_vertical" } },
+        { "type": "SEPARATOR", "id": "sepA2", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbSameW",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "same_width" } },
+        { "type": "BUTTON", "id": "tbSameH",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "same_height" } },
+        { "type": "BUTTON", "id": "tbSameS",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "same_size" } }
+      ]
+    },
+    {
+      "type": "TOOLBAR", "id": "tb1",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "BUTTON", "id": "tbNew",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "new" } },
+        { "type": "BUTTON", "id": "tbOpen",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "open" } },
+        { "type": "BUTTON", "id": "tbSave",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "save" } },
+        { "type": "SEPARATOR", "id": "sepT1", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbUndo",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "undo" } },
+        { "type": "BUTTON", "id": "tbRedo",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "redo" } },
+        { "type": "SEPARATOR", "id": "sepT2", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbCut",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "cut" } },
+        { "type": "BUTTON", "id": "tbCopy",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "copy" } },
+        { "type": "BUTTON", "id": "tbPaste",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "paste" } },
+        { "type": "BUTTON", "id": "tbDelete", "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "delete" } },
+        { "type": "SEPARATOR", "id": "sepT3", "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "BUTTON", "id": "tbFront",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "bringfront" } },
+        { "type": "BUTTON", "id": "tbBack",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "", "props": { "stockicon": "sendback" } }
+      ]
+    },
+    {
+      "type": "MENUSTRIP", "id": "menu",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        {
+          "type": "LABEL", "id": "file", "x": 0, "y": 0, "width": 0, "height": 0, "text": "File",
+          "children": [
+            { "type": "LABEL", "id": "mnuNew",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "New Canvas" },
+            { "type": "LABEL", "id": "mnuOpen", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Open..." },
+            { "type": "LABEL", "id": "mnuSave",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Save" },
+            { "type": "LABEL", "id": "mnuSaveAs", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Save As..." },
+            { "type": "LABEL", "id": "sep1",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "mnuExit", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Exit" }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "edit", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Edit",
+          "children": [
+            { "type": "LABEL", "id": "mnuUndo",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Undo" },
+            { "type": "LABEL", "id": "mnuRedo",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Redo" },
+            { "type": "LABEL", "id": "sepE1",     "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "mnuCut",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "Cut" },
+            { "type": "LABEL", "id": "mnuCopy",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Copy" },
+            { "type": "LABEL", "id": "mnuPaste",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Paste" },
+            { "type": "LABEL", "id": "sepE2",     "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "mnuDelete", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Delete Selected" },
+            { "type": "LABEL", "id": "sepE3",     "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            {
+              "type": "LABEL", "id": "mnuOrder", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Order",
+              "children": [
+                { "type": "LABEL", "id": "mnuFront",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Bring to Front" },
+                { "type": "LABEL", "id": "mnuBack",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Send to Back" }
+              ]
+            },
+            {
+              "type": "LABEL", "id": "mnuAlign", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align",
+              "children": [
+                { "type": "LABEL", "id": "mnuAlignL",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Left" },
+                { "type": "LABEL", "id": "mnuAlignR",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Right" },
+                { "type": "LABEL", "id": "mnuAlignT",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Top" },
+                { "type": "LABEL", "id": "mnuAlignB",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Bottom" },
+                { "type": "LABEL", "id": "sepA1",      "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+                { "type": "LABEL", "id": "mnuAlignHC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Center Horizontally" },
+                { "type": "LABEL", "id": "mnuAlignVC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Center Vertically" }
+              ]
+            },
+            {
+              "type": "LABEL", "id": "mnuLayout", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Layout",
+              "children": [
+                { "type": "LABEL", "id": "mnuDistH",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Distribute Horizontally" },
+                { "type": "LABEL", "id": "mnuDistV",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Distribute Vertically" },
+                { "type": "LABEL", "id": "sepL1",     "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+                { "type": "LABEL", "id": "mnuSameW",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Width" },
+                { "type": "LABEL", "id": "mnuSameH",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Height" },
+                { "type": "LABEL", "id": "mnuSameS",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Size" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "view", "x": 0, "y": 0, "width": 0, "height": 0, "text": "View",
+          "children": [
+            { "type": "LABEL", "id": "mnuShowProps",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Properties Panel" },
+            { "type": "LABEL", "id": "mnuShowCanvas", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Canvas" },
+            { "type": "LABEL", "id": "sepV1",         "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            {
+              "type": "LABEL", "id": "mnuGrid", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Grid Size",
+              "children": [
+                { "type": "LABEL", "id": "mnuGridOff", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Off (no snap)" },
+                { "type": "LABEL", "id": "mnuGrid4",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "4 px (fine)" },
+                { "type": "LABEL", "id": "mnuGrid8",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "8 px (default)" },
+                { "type": "LABEL", "id": "mnuGrid16",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "16 px (coarse)" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "help", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Help",
+          "children": [
+            { "type": "LABEL", "id": "mnuAbout", "x": 0, "y": 0, "width": 0, "height": 0, "text": "About FormCast..." }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TABCONTROL", "id": "toolbox",
+      "x": 0, "y": 88, "width": 286, "height": 280, "text": "",
+      "children": [
+        {
+          "type": "TABPAGE", "id": "tbAll", "x": 0, "y": 0, "width": 0, "height": 0, "text": "All",
+          "children": [
+            { "type": "BUTTON", "id": "taLabel",    "x": 4,   "y": 6,  "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_label" } },
+            { "type": "BUTTON", "id": "taEdit",     "x": 50,  "y": 6,  "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_edit" } },
+            { "type": "BUTTON", "id": "taButton",   "x": 96,  "y": 6,  "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_button" } },
+            { "type": "BUTTON", "id": "taCheckbox", "x": 142, "y": 6,  "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_checkbox" } },
+            { "type": "BUTTON", "id": "taRadio",    "x": 188, "y": 6,  "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_radio" } },
+            { "type": "BUTTON", "id": "taToggle",   "x": 4,   "y": 42, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_toggle" } },
+            { "type": "BUTTON", "id": "taLinkLbl",  "x": 50,  "y": 42, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_linklabel" } },
+            { "type": "BUTTON", "id": "taPicture",  "x": 96,  "y": 42, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_picture" } },
+            { "type": "BUTTON", "id": "taProgress", "x": 142, "y": 42, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_progress" } },
+            { "type": "BUTTON", "id": "taMemo",     "x": 188, "y": 42, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_memo" } },
+            { "type": "BUTTON", "id": "taRichMemo", "x": 4,   "y": 78, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_richmemo" } },
+            { "type": "BUTTON", "id": "taMasked",   "x": 50,  "y": 78, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_maskedit" } },
+            { "type": "BUTTON", "id": "taListbox",  "x": 96,  "y": 78, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_listbox" } },
+            { "type": "BUTTON", "id": "taCombobox", "x": 142, "y": 78, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_combobox" } },
+            { "type": "BUTTON", "id": "taChkList",  "x": 188, "y": 78, "width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_checkedlist" } },
+            { "type": "BUTTON", "id": "taTreeView", "x": 4,   "y": 114,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_treeview" } },
+            { "type": "BUTTON", "id": "taNumeric",  "x": 50,  "y": 114,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_numeric" } },
+            { "type": "BUTTON", "id": "taDatePick", "x": 96,  "y": 114,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_datepicker" } },
+            { "type": "BUTTON", "id": "taTrackbar", "x": 142, "y": 114,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_trackbar" } },
+            { "type": "BUTTON", "id": "taPanel",    "x": 188, "y": 114,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_panel" } },
+            { "type": "BUTTON", "id": "taGroupbox", "x": 4,   "y": 150,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_groupbox" } },
+            { "type": "BUTTON", "id": "taTabCtrl",  "x": 50,  "y": 150,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_tabcontrol" } },
+            { "type": "BUTTON", "id": "taSplitter", "x": 96,  "y": 150,"width": 42, "height": 32, "text": "", "props": { "stockicon": "ctrl_splitter" } }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "tbBasic", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Basic",
+          "children": [
+            { "type": "BUTTON", "id": "tLabel",    "x": 4,   "y": 6,  "width": 78, "height": 26, "text": "Label",    "props": { "stockicon": "ctrl_label" } },
+            { "type": "BUTTON", "id": "tEdit",     "x": 86,  "y": 6,  "width": 78, "height": 26, "text": "Edit",     "props": { "stockicon": "ctrl_edit" } },
+            { "type": "BUTTON", "id": "tButton",   "x": 168, "y": 6,  "width": 78, "height": 26, "text": "Button",   "props": { "stockicon": "ctrl_button" } },
+            { "type": "BUTTON", "id": "tCheckbox", "x": 4,   "y": 36, "width": 78, "height": 26, "text": "Checkbox", "props": { "stockicon": "ctrl_checkbox" } },
+            { "type": "BUTTON", "id": "tRadio",    "x": 86,  "y": 36, "width": 78, "height": 26, "text": "Radio",    "props": { "stockicon": "ctrl_radio" } },
+            { "type": "BUTTON", "id": "tToggle",   "x": 168, "y": 36, "width": 78, "height": 26, "text": "Toggle",   "props": { "stockicon": "ctrl_toggle" } },
+            { "type": "BUTTON", "id": "tLinkLbl",  "x": 4,   "y": 66, "width": 78, "height": 26, "text": "LinkLabel","props": { "stockicon": "ctrl_linklabel" } },
+            { "type": "BUTTON", "id": "tPicture",  "x": 86,  "y": 66, "width": 78, "height": 26, "text": "Picture",  "props": { "stockicon": "ctrl_picture" } },
+            { "type": "BUTTON", "id": "tProgress", "x": 168, "y": 66, "width": 78, "height": 26, "text": "Progress", "props": { "stockicon": "ctrl_progress" } }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "tbText", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Text",
+          "children": [
+            { "type": "BUTTON", "id": "tMemo",     "x": 4,   "y": 6, "width": 78, "height": 26, "text": "Memo",     "props": { "stockicon": "ctrl_memo" } },
+            { "type": "BUTTON", "id": "tRichMemo", "x": 86,  "y": 6, "width": 78, "height": 26, "text": "RichMemo", "props": { "stockicon": "ctrl_richmemo" } },
+            { "type": "BUTTON", "id": "tMasked",   "x": 168, "y": 6, "width": 78, "height": 26, "text": "MaskEdit", "props": { "stockicon": "ctrl_maskedit" } }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "tbLists", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Lists",
+          "children": [
+            { "type": "BUTTON", "id": "tListbox",  "x": 4,  "y": 6,  "width": 78, "height": 26, "text": "Listbox",  "props": { "stockicon": "ctrl_listbox" } },
+            { "type": "BUTTON", "id": "tCombobox", "x": 86, "y": 6,  "width": 78, "height": 26, "text": "Combobox", "props": { "stockicon": "ctrl_combobox" } },
+            { "type": "BUTTON", "id": "tChkList",  "x": 168,"y": 6,  "width": 78, "height": 26, "text": "ChkList",  "props": { "stockicon": "ctrl_checkedlist" } },
+            { "type": "BUTTON", "id": "tTreeView", "x": 4,  "y": 36, "width": 78, "height": 26, "text": "TreeView", "props": { "stockicon": "ctrl_treeview" } }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "tbNumeric", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Numeric",
+          "children": [
+            { "type": "BUTTON", "id": "tNumeric",  "x": 4,   "y": 6, "width": 78, "height": 26, "text": "Numeric",  "props": { "stockicon": "ctrl_numeric" } },
+            { "type": "BUTTON", "id": "tDatePick", "x": 86,  "y": 6, "width": 78, "height": 26, "text": "DatePick", "props": { "stockicon": "ctrl_datepicker" } },
+            { "type": "BUTTON", "id": "tTrackbar", "x": 168, "y": 6, "width": 78, "height": 26, "text": "TrackBar", "props": { "stockicon": "ctrl_trackbar" } }
+          ]
+        },
+        {
+          "type": "TABPAGE", "id": "tbLayout", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Layout",
+          "children": [
+            { "type": "BUTTON", "id": "tPanel",    "x": 4,  "y": 6,  "width": 78, "height": 26, "text": "Panel",    "props": { "stockicon": "ctrl_panel" } },
+            { "type": "BUTTON", "id": "tGroupbox", "x": 86, "y": 6,  "width": 78, "height": 26, "text": "GroupBox", "props": { "stockicon": "ctrl_groupbox" } },
+            { "type": "BUTTON", "id": "tTabCtrl",  "x": 168,"y": 6,  "width": 78, "height": 26, "text": "TabCtrl",  "props": { "stockicon": "ctrl_tabcontrol" } },
+            { "type": "BUTTON", "id": "tSplitter", "x": 4,  "y": 36, "width": 78, "height": 26, "text": "Splitter", "props": { "stockicon": "ctrl_splitter" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "STATUSBAR", "id": "sb",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "LABEL", "id": "msg", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Ready" }
+      ]
+    },
+    {
+      "type": "CONTEXTMENU", "id": "ctxMenu",
+      "x": 0, "y": 0, "width": 0, "height": 0, "text": "",
+      "children": [
+        { "type": "LABEL", "id": "ctxCut",    "x": 0, "y": 0, "width": 0, "height": 0, "text": "Cut" },
+        { "type": "LABEL", "id": "ctxCopy",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Copy" },
+        { "type": "LABEL", "id": "ctxPaste",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Paste" },
+        { "type": "LABEL", "id": "ctxSep1",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        { "type": "LABEL", "id": "ctxDelete", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Delete" },
+        { "type": "LABEL", "id": "ctxSep2",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+        {
+          "type": "LABEL", "id": "ctxOrder", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Order",
+          "children": [
+            { "type": "LABEL", "id": "ctxFront",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Bring to Front" },
+            { "type": "LABEL", "id": "ctxBack",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "Send to Back" }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "ctxAlign", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align",
+          "children": [
+            { "type": "LABEL", "id": "ctxAlignL",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Left" },
+            { "type": "LABEL", "id": "ctxAlignR",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Right" },
+            { "type": "LABEL", "id": "ctxAlignT",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Top" },
+            { "type": "LABEL", "id": "ctxAlignB",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Align Bottom" },
+            { "type": "LABEL", "id": "ctxSepA1",   "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "ctxAlignHC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Center Horizontally" },
+            { "type": "LABEL", "id": "ctxAlignVC", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Center Vertically" }
+          ]
+        },
+        {
+          "type": "LABEL", "id": "ctxLayout", "x": 0, "y": 0, "width": 0, "height": 0, "text": "Layout",
+          "children": [
+            { "type": "LABEL", "id": "ctxDistH",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Distribute Horizontally" },
+            { "type": "LABEL", "id": "ctxDistV",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Distribute Vertically" },
+            { "type": "LABEL", "id": "ctxSepL1",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "-" },
+            { "type": "LABEL", "id": "ctxSameW",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Width" },
+            { "type": "LABEL", "id": "ctxSameH",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Height" },
+            { "type": "LABEL", "id": "ctxSameS",  "x": 0, "y": 0, "width": 0, "height": 0, "text": "Make Same Size" }
+          ]
+        }
+      ]
+    }
+  ]
+}

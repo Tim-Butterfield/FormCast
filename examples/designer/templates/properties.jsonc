@@ -1,0 +1,27 @@
+// properties.jsonc -- Designer properties panel template
+// Loaded by formcast-visual-designer.btm via @FORMLOAD.
+// Contains a PropertyGrid (top) and Document Outline TreeView (bottom).
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "properties",
+  "title": "Properties",
+  "x": 840, "y": 80, "width": 300, "height": 420,
+  "controls": [
+    {
+      "type": "PROPERTYGRID", "id": "propGrid",
+      "x": 0, "y": 0, "width": 296, "height": 260, "text": "",
+      "props": { "anchor": "top+left+right+bottom" }
+    },
+    {
+      "type": "LABEL", "id": "lblOutline",
+      "x": 4, "y": 266, "width": 200, "height": 18, "text": "Document Outline:"
+    },
+    {
+      "type": "TREEVIEW", "id": "outline",
+      "x": 0, "y": 286, "width": 296, "height": 100, "text": "",
+      "props": { "anchor": "left+right+bottom" }
+    }
+  ]
+}

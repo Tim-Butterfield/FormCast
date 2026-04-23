@@ -1,0 +1,82 @@
+@echo off
+setlocal
+::
+:: 14-tabbed-settings.btm -- tabbed settings with grouped radios
+:: =============================================================
+::
+:: A "Preferences" dialog with three tabs (General, Editor,
+:: Advanced). The General tab has two GROUPBOX containers for
+:: radio buttons (Theme and Language) so each group selects
+:: independently. The Editor tab has a COMBOBOX dropdown for
+:: font size and a NUMERICUPDOWN spinner for tab width. The
+:: Advanced tab has a DATETIMEPICKER for a "start date" field.
+::
+:: Demonstrates: TABCONTROL / TABPAGE, GROUPBOX for radio
+:: grouping, COMBOBOX with additem, NUMERICUPDOWN with min/max,
+:: DATETIMEPICKER. Shows that multiple radio groups on the same
+:: form work correctly when each group is inside its own
+:: GROUPBOX.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 14-tabbed-settings.btm
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 14-tabbed-settings.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "btnOK" goto :on_ok
+    if "%_kind" == "click" .and. "%_ctrl" == "btnCancel" goto :on_cancel
+    if "%_kind" == "close" goto :on_cancel
+  enddo
+  delay /m 200
+  goto :loop
+
+:on_ok
+echo Settings saved:
+echo   font size = %@formget[%h,tabs/editor/cmbFont,selecteditem]
+echo   tab width = %@formget[%h,tabs/editor/nudTab,value]
+set RC=%@formclose[%h]
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+:on_cancel
+set RC=%@formclose[%h]
+echo Cancelled.
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+set h=%@formload[%_batchpath\templates\14-tabbed-settings.jsonc]
+if "%h" == "" return
+:: Editor tab: populate combobox and set defaults.
+set RC=%@formset[%h,tabs/editor/cmbFont,style,list]
+set RC=%@formset[%h,tabs/editor/cmbFont,additem,8]
+set RC=%@formset[%h,tabs/editor/cmbFont,additem,10]
+set RC=%@formset[%h,tabs/editor/cmbFont,additem,12]
+set RC=%@formset[%h,tabs/editor/cmbFont,additem,14]
+set RC=%@formset[%h,tabs/editor/cmbFont,additem,16]
+set RC=%@formset[%h,tabs/editor/cmbFont,selectedindex,2]
+:: Editor tab: numeric spinner range.
+set RC=%@formset[%h,tabs/editor/nudTab,min,1]
+set RC=%@formset[%h,tabs/editor/nudTab,max,16]
+set RC=%@formset[%h,tabs/editor/nudTab,value,4]
+:: Advanced tab: date format.
+set RC=%@formset[%h,tabs/advanced/dtpStart,format,short]
+:: Form-level button roles.
+set RC=%@formset[%h,.,acceptbutton,btnOK]
+set RC=%@formset[%h,.,cancelbutton,btnCancel]
+return

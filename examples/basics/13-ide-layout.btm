@@ -1,0 +1,99 @@
+@echo off
+setlocal
+::
+:: 13-ide-layout.btm -- IDE-shaped form with nested PANELs
+:: =======================================================
+::
+:: Builds the classic IDE layout pattern:
+::   - Toolbar (top, with New / Open / Save buttons)
+::   - Sidebar (left, with a LISTVIEW file browser)
+::   - Editor (center, with a MEMO for editing)
+::   - Status bar (bottom, with a LABEL)
+::
+:: Each region is a PANEL with its own child controls, showing how
+:: nested PANELs compose to build a complex layout from simple
+:: parts. The sidebar LISTVIEW populates from the current directory
+:: and clicking Open "loads" the selected file into the editor MEMO.
+::
+:: Demonstrates: nested PANELs with the slash-id syntax
+:: (toolbar/btnNew, sidebar/lst, editor/memo, status/lbl),
+:: LISTVIEW inside a PANEL, MEMO inside a PANEL, FORMEVENTS across
+:: panels, @FORMGET selecteditem + file reading into a MEMO via
+:: appendtext.
+::
+:: Run with:
+::   plugin /l C:\path\to\FormCast.dll
+::   call 13-ide-layout.btm
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 13-ide-layout.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+:: List .btm files from the examples directory.
+set _listdir=%_batchpath
+set RC=%@formset[%h,.,title,FormCast IDE Demo - %_listdir]
+
+do f in /a:-d "%_listdir\*.btm"
+  set RC=%@formset[%h,sidebar/lst,additem,%@filename[%f]]
+enddo
+
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    set _ctrl=%@word[2,%ev]
+    if "%_kind" == "click" .and. "%_ctrl" == "toolbar/btnOpen" goto :on_open
+    if "%_kind" == "click" .and. "%_ctrl" == "toolbar/btnNew" goto :on_new
+    if "%_kind" == "dblclick" .and. "%_ctrl" == "sidebar/lst" goto :on_open
+    if "%_kind" == "close" goto :on_close
+  enddo
+  delay /m 200
+  goto :loop
+
+:on_open
+  set picked=%@formget[%h,sidebar/lst,selecteditem]
+  iff "%picked" == "" then
+    set RC=%@formset[%h,status/lbl,text,No file selected.]
+    goto :loop
+  endiff
+  :: Build full path -- %_batchpath may or may not have trailing \
+  set _fullpath=%_batchpath\%picked
+  iff not exist "%_fullpath" then
+    set RC=%@formset[%h,status/lbl,text,File not found: %picked]
+    goto :loop
+  endiff
+
+  :: Clear the editor and load the file content (read-only view).
+  set RC=%@formset[%h,editor/memo,text,]
+  do line in /p type "%_fullpath"
+    set RC=%@formset[%h,editor/memo,appendtext,%line]
+  enddo
+  set RC=%@formset[%h,status/lbl,text,Opened: %picked (read-only)]
+  set RC=%@formset[%h,.,title,FormCast IDE Demo - %picked]
+goto :loop
+
+:on_new
+  set RC=%@formset[%h,editor/memo,text,]
+  set RC=%@formset[%h,status/lbl,text,New file]
+  set RC=%@formset[%h,.,title,FormCast IDE Demo - untitled]
+goto :loop
+
+:on_close
+  set RC=%@formclose[%h]
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+set h=%@formload[%_batchpath\templates\13-ide-layout.jsonc]
+if "%h" == "" return
+set RC=%@formset[%h,sidebar/lst,addcolumn,File:168:text]
+return

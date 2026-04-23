@@ -1,0 +1,59 @@
+@echo off
+setlocal
+::
+:: 10-designer-drag.btm -- interactive drag-to-move in design mode
+:: ===============================================================
+::
+:: Opens a form with three buttons, enables design_mode, and shows
+:: the form. In design mode the user can:
+::
+::   - Click any control to SELECT it (a red dashed border appears)
+::   - Drag a selected control to MOVE it (the control follows the
+::     mouse in real time)
+::   - Release the mouse to COMMIT the new position to the
+::     descriptor (so @FORMGET position and @FORMSAVE reflect it)
+::   - Click the form background to DESELECT
+::
+:: When the user closes the form the script reads back each
+:: control's final position via @FORMGET position to show that the
+:: drag was committed to the descriptor.
+::
+:: Demonstrates: design_mode=1 with the interactive DesignModeHandler,
+:: click-to-select with visual overlay, drag-to-move with real-time
+:: feedback, descriptor commit on mouseup.
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+set RC=%@formshow[%h]
+set RC=%@formfocus[%h]
+
+:: Event loop
+:loop
+  do ev in /p formevents %h
+    set _kind=%@word[1,%ev]
+    if "%_kind" == "close" goto :on_close
+  enddo
+  delay /m 200
+  goto :loop
+
+:on_close
+echo Final positions after dragging:
+echo   btnA position = %@formget[%h,btnA,position]
+echo   btnB position = %@formget[%h,btnB,position]
+echo   btnC position = %@formget[%h,btnC,position]
+set RC=%@formclose[%h]
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+  set h=%@formopen[form,dragdemo,200,150,500,300]
+  set RC=%@formset[%h,.,title,Design Mode -- drag controls around]
+  set RC=%@formset[%h,.,design_mode,1]
+  set RC=%@formadd[%h,btnA,BUTTON,20,20,120,32,Button A]
+  set RC=%@formadd[%h,btnB,BUTTON,20,70,120,32,Button B]
+  set RC=%@formadd[%h,btnC,BUTTON,20,120,120,32,Button C]
+  set RC=%@formadd[%h,lbl,LABEL,20,260,450,20,Click a button to select. Drag to move. Close to see final positions.]
+return

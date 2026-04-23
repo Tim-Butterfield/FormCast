@@ -1,0 +1,48 @@
+@echo off
+setlocal
+::
+:: 09-modal-dialog.btm -- modal form that blocks until dismissed
+:: ============================================================
+::
+:: Opens a form as a MODAL dialog using @FORMSHOW[h, modal:3000].
+:: The script thread blocks inside @FORMSHOW until either the user
+:: closes the dialog or the 3-second auto-dismiss timer fires.
+:: The return value is the integer DialogResult (2 = Cancel when
+:: the timer closes it, or 0 = None if the user clicks OK first).
+::
+:: Demonstrates: modal @FORMSHOW with auto-dismiss timeout. This
+:: is the pattern for scripts that need to pause and wait for
+:: user input before continuing, rather than the "do forever /
+:: delay 1" pattern used by non-modal forms.
+::
+
+:: Load the plugin (uses FORMCAST_DLL env var or same-directory fallback).
+call "%_batchpath\..\formcast-check.btm" load
+
+gosub render
+iff "%h" == "" then
+  echo ERROR: @FORMLOAD failed for 09-modal-dialog.jsonc
+  call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 1
+endiff
+
+echo Showing modal dialog (auto-close in 3s)...
+set result=%@formshow[%h,modal:3000]
+set RC=%@formfocus[%h]
+echo Dialog returned: %result
+
+iff "%result" == "2" then
+  echo (auto-dismiss timer fired)
+else
+  echo (user clicked OK)
+endiff
+
+set RC=%@formclose[%h]
+call "%_batchpath\..\formcast-check.btm" unload
+  endlocal & quit 0
+
+:render
+  set h=%@formload[%_batchpath\templates\09-modal-dialog.jsonc]
+  if "%h" == "" return
+  set RC=%@formset[%h,.,acceptbutton,btn]
+return

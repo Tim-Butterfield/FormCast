@@ -1,0 +1,32 @@
+// simple.jsonc -- the minimal valid FormCast template.
+//
+// One absolute-layout form with a label and an OK button. This is
+// the smallest example a script can @FORMLOAD and reach a usable
+// form descriptor with. Use it as the starting point when authoring
+// a new template by hand.
+{
+  "$schema": "../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "simple",
+  "title": "Simple Form",
+  "x": 100,
+  "y": 100,
+  "width": 320,
+  "height": 120,
+  "layout": "absolute",
+  "controls": [
+    {
+      "type": "LABEL",
+      "id": "lbl",
+      "x": 10, "y": 10, "width": 300, "height": 20,
+      "text": "Hello, FormCast."
+    },
+    {
+      "type": "BUTTON",
+      "id": "ok",
+      "x": 220, "y": 80, "width": 80, "height": 28,
+      "text": "OK"
+    }
+  ]
+}

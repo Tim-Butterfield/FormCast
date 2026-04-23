@@ -1,0 +1,21 @@
+// 11-pipe-memo.jsonc -- MEMO form for piped command output
+// ========================================================
+//
+// A label-less form with a single MEMO control that fills the
+// client area.  Used by 11-pipe-output.btm Part 1 to capture
+// `dir /b` output via FORMPIPE.
+{
+  "$schema": "../../../schema/formcast-template.schema.json",
+  "version": 1,
+  "type": "form",
+  "name": "pipedemo",
+  "title": "Directory listing (MEMO)",
+  "x": 200, "y": 150, "width": 500, "height": 300,
+  "controls": [
+    {
+      "type": "MEMO", "id": "memo",
+      "x": 8, "y": 8, "width": 484, "height": 250,
+      "text": ""
+    }
+  ]
+}
