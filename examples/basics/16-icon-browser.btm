@@ -134,7 +134,7 @@ return
   endlocal & quit 0
 
 :render
-  set h=%@formload[%_batchpath\templates\16-icon-browser.jsonc]
+  set h=%@formload[%@truename[%_batchpath\templates\16-icon-browser.jsonc]]
   if "%h" == "" return
   set RC=%@formset[%h,.,font,Segoe UI:10]
   set RC=%@formset[%h,split/grid,autoscroll,1]

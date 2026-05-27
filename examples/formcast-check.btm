@@ -6,7 +6,7 @@
 :: Usage:
 ::   call formcast-check.btm load     Load the FormCast plugin
 ::   call formcast-check.btm unload   Unload the plugin; exit TCC
-::                                     if launched from Windows Explorer
+::                                     if running in a transient session
 ::
 :: Called by all FormCast example BTMs. Not intended to be run
 :: directly, but will show usage info if called without a parameter.
@@ -68,4 +68,4 @@ goto :eof
 
 :fc_unload
 plugin /u FormCast 2>nul
-if "%@index[%_parent,explorer]" != "-1" exit
+if "%_transient" == "1" exit

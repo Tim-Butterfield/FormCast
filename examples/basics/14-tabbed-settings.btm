@@ -60,7 +60,7 @@ call "%_batchpath\..\formcast-check.btm" unload
   endlocal & quit 0
 
 :render
-set h=%@formload[%_batchpath\templates\14-tabbed-settings.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\14-tabbed-settings.jsonc]]
 if "%h" == "" return
 :: Editor tab: populate combobox and set defaults.
 set RC=%@formset[%h,tabs/editor/cmbFont,style,list]

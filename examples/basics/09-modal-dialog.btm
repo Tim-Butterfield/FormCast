@@ -42,7 +42,7 @@ call "%_batchpath\..\formcast-check.btm" unload
   endlocal & quit 0
 
 :render
-  set h=%@formload[%_batchpath\templates\09-modal-dialog.jsonc]
+  set h=%@formload[%@truename[%_batchpath\templates\09-modal-dialog.jsonc]]
   if "%h" == "" return
   set RC=%@formset[%h,.,acceptbutton,btn]
 return

@@ -3,13 +3,14 @@ FormCast -- WinForms GUI plugin for TCC v36
 
 Installation:
 
-  1. Copy the bin\ folder contents to a location on your machine
-     (e.g. C:\FormCast\bin\)
+  1. Copy the extracted files to a location on your machine
+     (e.g. C:\FormCast\). FormCast.dll and all dependency DLLs
+     must stay in the same directory.
 
   2. Set the FORMCAST_DLL environment variable to the full path
      of FormCast.dll:
 
-       set FORMCAST_DLL=C:\FormCast\bin\FormCast.dll
+       set FORMCAST_DLL=C:\FormCast\FormCast.dll
 
      Add this to your TCSTART.btm or system environment variables
      for persistence.

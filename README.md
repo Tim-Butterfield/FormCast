@@ -186,12 +186,12 @@ Output:
 ## Install
 
 1. Download the latest FormCast release zip from the releases page and extract it.
-2. Copy the entire `bin/` directory to a permanent location (e.g.
- `C:\FormCast\bin\`). All dependency DLLs must stay alongside
+2. Copy the extracted files to a permanent location (e.g.
+ `C:\FormCast\`). All dependency DLLs must stay alongside
  `FormCast.dll`.
 3. Set the `FORMCAST_DLL` environment variable:
  ```
- set FORMCAST_DLL=C:\FormCast\bin\FormCast.dll
+ set FORMCAST_DLL=C:\FormCast\FormCast.dll
  ```
 4. Load the plugin:
  ```

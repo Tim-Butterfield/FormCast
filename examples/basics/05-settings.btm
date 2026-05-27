@@ -63,7 +63,7 @@ call "%_batchpath\..\formcast-check.btm" unload
   endlocal & quit 0
 
 :render
-set h=%@formload[%_batchpath\templates\05-settings.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\05-settings.jsonc]]
 if "%h" == "" return
 set RC=%@formset[%h,.,acceptbutton,btnOK]
 set RC=%@formset[%h,.,cancelbutton,btnCancel]

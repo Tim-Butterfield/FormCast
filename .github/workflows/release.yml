@@ -45,24 +45,23 @@ jobs:
       - name: Stage release artifacts
         shell: pwsh
         run: |
-          # Build a self-contained release zip. The bin/ directory
+          # Build a self-contained release zip. The top level
           # includes FormCast.dll AND all its NuGet dependency DLLs
           # (System.Text.Json, System.Memory, etc.) so the plugin
           # works on any machine with .NET Framework 4.8 installed
           # (which is required by TCC v36's plugin host anyway).
           New-Item -ItemType Directory -Path release-stage | Out-Null
-          New-Item -ItemType Directory -Path release-stage/bin | Out-Null
           New-Item -ItemType Directory -Path release-stage/docs | Out-Null
           New-Item -ItemType Directory -Path release-stage/schema | Out-Null
           New-Item -ItemType Directory -Path release-stage/examples | Out-Null
 
           # Plugin DLL + all dependency DLLs + XML doc (exclude .pdb debug files)
-          Copy-Item src/FormCast/bin/Release/net48/*.dll  release-stage/bin/
-          Copy-Item src/FormCast/bin/Release/net48/*.xml  release-stage/bin/
+          Copy-Item src/FormCast/bin/Release/net48/*.dll  release-stage/
+          Copy-Item src/FormCast/bin/Release/net48/*.xml  release-stage/
 
           # Host EXE + its config
-          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe        release-stage/bin/
-          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe.config release-stage/bin/
+          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe        release-stage/
+          Copy-Item src/FormCast.Host/bin/Release/net48/FormCast.Host.exe.config release-stage/
 
           # Documentation
           Copy-Item docs/*.md          release-stage/docs/
