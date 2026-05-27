@@ -9,10 +9,10 @@ about a minute.
 ## 1. Install
 
 1. Download the latest FormCast release zip from the [releases page](https://github.com/Tim-Butterfield/FormCast/releases).
-2. Extract the `bin/` directory to a permanent location (e.g. `C:\FormCast\bin\`). Keep all DLLs together — the plugin needs its dependency DLLs in the same directory.
+2. Extract the zip to a permanent location (e.g. `C:\FormCast\`). Keep all DLLs together — the plugin needs its dependency DLLs in the same directory as `FormCast.dll`.
 3. Set the `FORMCAST_DLL` environment variable so BTM scripts can find it:
    ```
-   set FORMCAST_DLL=C:\FormCast\bin\FormCast.dll
+   set FORMCAST_DLL=C:\FormCast\FormCast.dll
    ```
    (Add this to your TCC startup file or system environment for persistence.)
 4. Load it with `plugin /l %FORMCAST_DLL`.

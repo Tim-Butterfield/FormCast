@@ -93,7 +93,7 @@ goto :loop
   endlocal & quit 0
 
 :render
-set h=%@formload[%_batchpath\templates\13-ide-layout.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\13-ide-layout.jsonc]]
 if "%h" == "" return
 set RC=%@formset[%h,sidebar/lst,addcolumn,File:168:text]
 return

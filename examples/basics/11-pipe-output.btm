@@ -77,13 +77,13 @@ call "%_batchpath\..\formcast-check.btm" unload
   endlocal & quit 0
 
 :render_memo
-set h=%@formload[%_batchpath\templates\11-pipe-memo.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\11-pipe-memo.jsonc]]
 if "%h" == "" return
 set RC=%@formset[%h,memo,readonly,1]
 return
 
 :render_richmemo
-set h=%@formload[%_batchpath\templates\11-pipe-richmemo.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\11-pipe-richmemo.jsonc]]
 if "%h" == "" return
 set RC=%@formset[%h,rm,readonly,1]
 return

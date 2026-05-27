@@ -104,7 +104,7 @@ goto :loop
   endlocal & quit 0
 
 :render
-set h=%@formload[%_batchpath\templates\15-app-window.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\15-app-window.jsonc]]
 if "%h" == "" return
 :: Tooltips on toolbar buttons
 set RC=%@formset[%h,tbNew,tooltip,Create a new document]

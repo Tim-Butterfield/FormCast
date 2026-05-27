@@ -96,7 +96,7 @@ set RC=%@formfocus[%h]
   endlocal & quit 0
 
 :render
-set h=%@formload[%_batchpath\templates\04-file-picker.jsonc]
+set h=%@formload[%@truename[%_batchpath\templates\04-file-picker.jsonc]]
 if "%h" == "" return
 :: Add columns to the listview (dynamic, not in the template).
 set RC=%@formset[%h,lst,addcolumn,Name:300:text]

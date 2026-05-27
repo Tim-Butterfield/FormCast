@@ -117,7 +117,7 @@ set RC=%@formfocus[%hPicker]
   endlocal & quit 0
 
 :render_picker
-set hPicker=%@formload[%_batchpath\templates\12-picker.jsonc]
+set hPicker=%@formload[%@truename[%_batchpath\templates\12-picker.jsonc]]
 if "%hPicker" == "" return
 set RC=%@formset[%hPicker,lblPath,text,%_listdir]
 set RC=%@formset[%hPicker,lst,addcolumn,Name:300:text]
@@ -126,7 +126,7 @@ set RC=%@formset[%hPicker,lst,addcolumn,Modified:80:date]
 return
 
 :render_viewer
-set hViewer=%@formload[%_batchpath\templates\12-viewer.jsonc]
+set hViewer=%@formload[%@truename[%_batchpath\templates\12-viewer.jsonc]]
 if "%hViewer" == "" return
 set RC=%@formset[%hViewer,rm,readonly,1]
 return

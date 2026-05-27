@@ -59,7 +59,7 @@ set RC=%@formset[%hCanvas,.,title,Canvas - untitled]
 set RC=%@formset[%hCanvas,.,design_mode,1]
 
 :: Toolbox loaded from template
-set hTool=%@formload[%_batchpath\templates\toolbox.jsonc]
+set hTool=%@formload[%@truename[%_batchpath\templates\toolbox.jsonc]]
 iff "%hTool" == "" then
   echo ERROR: Failed to load toolbox template.
   call "%_batchpath\..\formcast-check.btm" unload
@@ -71,7 +71,7 @@ iff "%1" == "/app" then
 endiff
 if exist "%_batchpath\designer.ico" set RC=%@formset[%hTool,.,icon,%_batchpath\designer.ico]
 :: Properties panel loaded from template
-set hProps=%@formload[%_batchpath\templates\properties.jsonc]
+set hProps=%@formload[%@truename[%_batchpath\templates\properties.jsonc]]
 iff "%hProps" == "" then
   echo ERROR: Failed to load properties template.
   call "%_batchpath\..\formcast-check.btm" unload
