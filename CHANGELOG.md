@@ -9,6 +9,23 @@ See [README.md](README.md) for the feature overview and install instructions.
 
 ## [Unreleased]
 
+## [1.1.0] -- 2026-05-27
+
+### Fixed
+
+- **Unload no longer kills persistent TCC sessions**: `formcast-check.btm`
+  now checks `%_transient` instead of `%_parent` containing `explorer`,
+  so only double-click-spawned windows auto-close on unload.
+- **Template loading on SUBST/mapped drives**: all `@FORMLOAD` calls in
+  example BTMs now resolve paths through `@truename` before passing to
+  .NET, matching the pattern already used for `plugin /l`.
+
+### Changed
+
+- **Flat release zip**: DLLs and `FormCast.Host.exe` are now in the zip
+  root instead of a `bin/` subfolder. Install docs updated to match
+  (e.g. `C:\FormCast\FormCast.dll` instead of `C:\FormCast\bin\FormCast.dll`).
+
 ## [1.0.0] -- 2026-04-22
 
 First public release.
@@ -48,5 +65,6 @@ First public release.
   119-case TCC integration + smoke suite covering the designer,
   templates, events, and plugin lifecycle.
 
-[Unreleased]: https://github.com/Tim-Butterfield/FormCast/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Tim-Butterfield/FormCast/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Tim-Butterfield/FormCast/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Tim-Butterfield/FormCast/releases/tag/v1.0.0
