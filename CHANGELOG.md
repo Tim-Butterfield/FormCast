@@ -7,7 +7,31 @@ and the project adheres to [Semantic Versioning 2.0](https://semver.org/spec/v2.
 
 See [README.md](README.md) for the feature overview and install instructions.
 
-## [Unreleased]
+## [1.1.1] -- 2026-05-27
+
+### Fixed
+
+- **Path normalization in template I/O**: `@FORMLOAD`, `@FORMIMPORT`,
+  `@FORMSAVE`, `@FORMSAVEIMAGE`, and `@FORMSAVECOMPOSITE` now normalize
+  paths via `Path.GetFullPath()` before calling .NET file APIs, handling
+  double backslashes, SUBST drives, and mapped shares without requiring
+  `%@truename[]` on the BTM side. (issue #1)
+- **CHECKBOX and RADIO pre-show property**: `checked` property is now
+  read from the descriptor property bag during control realization, so
+  `@FORMSET` before `@FORMSHOW` works correctly. (issues #2, #4)
+- **DATETIMEPICKER value get/set**: new `value` property for setting
+  and reading the date (ISO 8601 format) both before and after
+  `@FORMSHOW`. (issue #3)
+- **RADIO checked get/set**: `@FORMGET` and `@FORMSET` for the `checked`
+  property now work on RADIO controls, matching CHECKBOX and TOGGLE
+  behavior. (issue #4)
+- **Test suite**: catch `BadImageFormatException` in P/Invoke error
+  handlers so all 579 tests pass regardless of test runner bitness.
+
+### Changed
+
+- **Centralized version**: version number moved to `Directory.Build.props`
+  so all projects inherit from one place.
 
 ## [1.1.0] -- 2026-05-27
 
@@ -65,6 +89,6 @@ First public release.
   119-case TCC integration + smoke suite covering the designer,
   templates, events, and plugin lifecycle.
 
-[Unreleased]: https://github.com/Tim-Butterfield/FormCast/compare/v1.1.0...HEAD
+[1.1.1]: https://github.com/Tim-Butterfield/FormCast/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Tim-Butterfield/FormCast/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Tim-Butterfield/FormCast/releases/tag/v1.0.0

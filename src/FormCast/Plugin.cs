@@ -4601,6 +4601,10 @@ namespace FormCast
                     {
                         // Same.
                     }
+                    catch (BadImageFormatException)
+                    {
+                        // Architecture mismatch in test mode.
+                    }
                 });
             }
             catch (InvalidOperationException)
@@ -4757,6 +4761,12 @@ namespace FormCast
                 catch (EntryPointNotFoundException)
                 {
                     // Same: missing entry point in a stub TakeCmd.dll.
+                }
+                catch (BadImageFormatException)
+                {
+                    // Architecture mismatch: test runner bitness
+                    // differs from the native TakeCmd.dll (e.g.
+                    // x64 test host loading x86 DLL).
                 }
             }
             return 0;

@@ -119,7 +119,7 @@ Some props have meaning to the realizer:
 | `acceptbutton` | form | button id wired to Enter key |
 | `cancelbutton` | form | button id wired to Escape key |
 | `autoscroll` | PANEL | enable auto-scrolling |
-| `checked` | CHECKBOX, TOGGLE | initial checked state |
+| `checked` | CHECKBOX, RADIO, TOGGLE | initial checked state (`1`, `true`, or `yes`) |
 
 The `_lv.*` keys are managed by the LISTVIEW pseudo-prop dispatch
 (`addcolumn`, `additem`, ...) and round-trip through serializer

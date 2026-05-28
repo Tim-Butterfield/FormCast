@@ -39,11 +39,7 @@
     <RepositoryUrl>https://github.com/Tim-Butterfield/FormCast</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 
-    <!-- Versioning. Bump on every public release.
- Keep in sync with PluginVersion in src/FormCast/Plugin.cs. -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <!-- Version is inherited from Directory.Build.props -->
 
     <!-- Deterministic builds for reproducibility -->
     <Deterministic>true</Deterministic>
