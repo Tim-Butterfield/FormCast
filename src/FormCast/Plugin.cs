@@ -2786,7 +2786,7 @@ namespace FormCast
                 return 0;
             }
 
-            string path = parts[1];
+            string path = Path.GetFullPath(parts[1]);
             try
             {
                 string json = FormSerializer.Serialize(form);
@@ -2824,7 +2824,7 @@ namespace FormCast
             // ${var} substitution.
             if (parts.Length < 1 || parts.Length > 2) { return 0; }
 
-            string path = parts[0];
+            string path = Path.GetFullPath(parts[0]);
             Dictionary<string, string>? vars = parts.Length == 2
                 ? FormSerializer.ParseVars(parts[1])
                 : null;
@@ -2910,7 +2910,7 @@ namespace FormCast
                 return 0;
             }
 
-            string path = parts[1];
+            string path = Path.GetFullPath(parts[1]);
             Dictionary<string, string>? vars = parts.Length == 3
                 ? FormSerializer.ParseVars(parts[2])
                 : null;
@@ -4203,7 +4203,7 @@ namespace FormCast
                 return 0;
             }
 
-            string path = parts[1];
+            string path = Path.GetFullPath(parts[1]);
 
             try
             {
@@ -4248,7 +4248,7 @@ namespace FormCast
                 return 0;
             }
 
-            string path = parts[0];
+            string path = Path.GetFullPath(parts[0]);
             var forms = new List<Form>();
 
             for (int i = 1; i < parts.Length; i++)
