@@ -35,6 +35,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 
 using FormCast.Threading;
@@ -1569,6 +1570,13 @@ namespace FormCast.Forms
                         };
                         string? customFmt = GetProp(desc, "customformat");
                         if (customFmt is not null) { dtp.CustomFormat = customFmt; }
+                        string? dtpValue = GetProp(desc, "value");
+                        if (dtpValue is not null &&
+                            DateTime.TryParse(dtpValue, CultureInfo.InvariantCulture,
+                                DateTimeStyles.RoundtripKind, out DateTime dtVal))
+                        {
+                            dtp.Value = dtVal;
+                        }
                         control = dtp;
                     }
                     break;
