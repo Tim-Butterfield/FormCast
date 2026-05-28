@@ -1121,7 +1121,8 @@ namespace FormCast
                 }
                 else if (string.Equals(prop, "checked", StringComparison.OrdinalIgnoreCase) &&
                          (string.Equals(c.Type, "TOGGLE", StringComparison.OrdinalIgnoreCase) ||
-                          string.Equals(c.Type, "CHECKBOX", StringComparison.OrdinalIgnoreCase)))
+                          string.Equals(c.Type, "CHECKBOX", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(c.Type, "RADIO", StringComparison.OrdinalIgnoreCase)))
                 {
                     result = TryReadCheckedState(seq, c);
                 }
@@ -1244,6 +1245,10 @@ namespace FormCast
                 if (target is CheckBox cb)
                 {
                     result = cb.Checked ? "true" : "false";
+                }
+                else if (target is RadioButton rb)
+                {
+                    result = rb.Checked ? "true" : "false";
                 }
                 else if (target is Forms.Controls.ToggleSwitch tgl)
                 {
@@ -2428,6 +2433,7 @@ namespace FormCast
                     case "checked":
                         bool flag = value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
                         if (target is CheckBox cb) { cb.Checked = flag; }
+                        else if (target is RadioButton rb) { rb.Checked = flag; }
                         else if (target is Forms.Controls.ToggleSwitch tgl) { tgl.Checked = flag; }
                         break;
                 }
