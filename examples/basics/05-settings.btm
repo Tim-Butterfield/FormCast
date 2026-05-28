@@ -43,7 +43,7 @@ set RC=%@formfocus[%h]
 :on_ok
 set name=%@formget[%h,txtName,text]
 set theme=light
-if "%@formget[%h,rDark,checked]" == "1" set theme=dark
+if "%@formget[%h,rDark,checked]" == "true" set theme=dark
 set autosave=%@formget[%h,cAuto,checked]
 set wrap=%@formget[%h,cWrap,checked]
 set spell=%@formget[%h,cSpell,checked]

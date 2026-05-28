@@ -128,14 +128,17 @@ forward compatibility.
 props update the visible control immediately:
 
 - `text` -- labels, buttons, edits, and other text-bearing controls
-- `value`, `min`, `max`, `checked` -- ProgressBar, TrackBar,
-  NumericUpDown, ScrollBar, CheckBox, Toggle
+- `value`, `min`, `max` -- ProgressBar, TrackBar, NumericUpDown,
+  ScrollBar, DateTimePicker
+- `checked` -- CheckBox, Radio, Toggle
 - `position` (`x:y`), `size` (`w:h`) -- control bounds
 - `splitterdistance` -- SplitContainer divider position
 
 ### `@FORMGET[h,ctrl,prop]`
 Read a property. Empty buffer on miss. `selecteditem` (LISTVIEW),
-`text` (RICHMEMO), `position`, `size` are computed reads.
+`text` (RICHMEMO/EDIT/MEMO), `checked` (CheckBox/Radio/Toggle),
+`value` (DateTimePicker), `position`, `size` are computed reads
+that return the live control state when the form is realized.
 
 ---
 
@@ -198,6 +201,17 @@ Date/time selection control. Props:
 |---|---|
 | `format` | `long` (default), `short`, `time`, `custom` |
 | `customformat` | format string when `format=custom` (e.g. `yyyy-MM-dd`) |
+| `value` | initial date/time; accepts ISO 8601 or common date strings |
+
+Set `value` before or after `@FORMSHOW`:
+```
+%@formset[%h,dtp,value,2026-06-15]
+```
+
+Read the current value (returns ISO 8601):
+```
+set dt=%@formget[%h,dtp,value]
+```
 
 Fires a `change` event with the new value in ISO 8601 format.
 
@@ -294,6 +308,34 @@ Panel1 and Panel2 respectively. Props:
 |---|---|
 | `orientation` | `vertical` (left/right, default) or `horizontal` (top/bottom) |
 | `splitterdistance` | initial position of the splitter in pixels (also live-settable after `@FORMSHOW`) |
+
+## CHECKBOX
+
+A check-mark toggle. Set or read the `checked` property (`true`/`false`):
+
+```
+%@formadd[%h,cb,CHECKBOX,12,12,150,20,Enable option]
+%@formset[%h,cb,checked,true]
+set val=%@formget[%h,cb,checked]
+```
+
+Fires a `change` event with `true` or `false`.
+
+## RADIO
+
+A one-of-many selector. WinForms groups radio buttons by their parent
+container, so use a `GROUPBOX` when you need multiple independent groups:
+
+```
+%@formadd[%h,grp,GROUPBOX,12,12,200,80,Pick one]
+%@formadd[%h,grp/r1,RADIO,10,24,80,20,Alpha]
+%@formadd[%h,grp/r2,RADIO,10,48,80,20,Beta]
+%@formset[%h,grp/r1,checked,true]
+set sel=%@formget[%h,grp/r1,checked]
+```
+
+Coordinates inside a `GROUPBOX` are relative to the GroupBox client area.
+Fires a `change` event with `true` or `false`.
 
 ## TOGGLE (on/off switch)
 
