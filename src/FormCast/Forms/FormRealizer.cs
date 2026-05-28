@@ -1322,7 +1322,15 @@ namespace FormCast.Forms
                     control = new Button { Text = desc.Text };
                     break;
                 case "CHECKBOX":
-                    control = new CheckBox { Text = desc.Text };
+                    {
+                        var cb = new CheckBox { Text = desc.Text };
+                        string? chk = GetProp(desc, "checked");
+                        if (ParseBoolFlag(chk))
+                        {
+                            cb.Checked = true;
+                        }
+                        control = cb;
+                    }
                     break;
                 case "TOGGLE":
                     {
@@ -1336,7 +1344,15 @@ namespace FormCast.Forms
                     }
                     break;
                 case "RADIO":
-                    control = new RadioButton { Text = desc.Text };
+                    {
+                        var rb = new RadioButton { Text = desc.Text };
+                        string? chk = GetProp(desc, "checked");
+                        if (ParseBoolFlag(chk))
+                        {
+                            rb.Checked = true;
+                        }
+                        control = rb;
+                    }
                     break;
                 case "PANEL":
                     {
