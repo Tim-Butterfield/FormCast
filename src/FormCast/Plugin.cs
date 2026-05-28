@@ -1125,6 +1125,11 @@ namespace FormCast
                 {
                     result = TryReadCheckedState(seq, c);
                 }
+                else if (string.Equals(prop, "value", StringComparison.OrdinalIgnoreCase) &&
+                         string.Equals(c.Type, "DATETIMEPICKER", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = TryReadDateTimePickerValue(seq, c);
+                }
                 else
                 {
                     result = TryGetControlProperty(c, prop);
@@ -1243,6 +1248,30 @@ namespace FormCast
                 else if (target is Forms.Controls.ToggleSwitch tgl)
                 {
                     result = tgl.Checked ? "true" : "false";
+                }
+            });
+            return result;
+        }
+
+        private string TryReadDateTimePickerValue(int seq, ControlDescriptor c)
+        {
+            Form? realized;
+            lock (_realizedFormsLock)
+            {
+                _realizedForms.TryGetValue(seq, out realized);
+            }
+            string fallback = c.Properties.TryGetValue("value", out string? v)
+                ? v ?? string.Empty : string.Empty;
+            if (realized is null) { return fallback; }
+
+            string result = fallback;
+            _guiHost.Invoke(() =>
+            {
+                if (realized.IsDisposed) { return; }
+                System.Windows.Forms.Control? target = FindRealizedControl(realized, c.Id);
+                if (target is DateTimePicker dtp)
+                {
+                    result = dtp.Value.ToString("o", CultureInfo.InvariantCulture);
                 }
             });
             return result;
@@ -2379,6 +2408,12 @@ namespace FormCast
                         else if (target is TrackBar tb) { tb.Value = Math.Max(tb.Minimum, Math.Min(tb.Maximum, intVal)); }
                         else if (target is NumericUpDown nud) { nud.Value = Math.Max(nud.Minimum, Math.Min(nud.Maximum, intVal)); }
                         else if (target is ScrollBar sb) { sb.Value = Math.Max(sb.Minimum, Math.Min(sb.Maximum, intVal)); }
+                        else if (target is DateTimePicker dtp &&
+                                 DateTime.TryParse(value, CultureInfo.InvariantCulture,
+                                     DateTimeStyles.RoundtripKind, out DateTime dtVal))
+                        {
+                            dtp.Value = dtVal;
+                        }
                         break;
                     case "min":
                         if (target is ProgressBar pb2) { pb2.Minimum = intVal; }
