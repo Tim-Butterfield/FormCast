@@ -7,6 +7,23 @@ and the project adheres to [Semantic Versioning 2.0](https://semver.org/spec/v2.
 
 See [README.md](README.md) for the feature overview and install instructions.
 
+## [1.1.2] -- 2026-06-01
+
+### Fixed
+
+- **NUMERICUPDOWN and TRACKBAR value get**: `@FORMGET` for the `value`
+  property now reads the live control's current value instead of the
+  initial descriptor value, so changes the user makes in the form are
+  reflected. (issue #5)
+
+### Changed
+
+- **Release zip**: the release workflow now publishes an identically
+  named `FormCast.zip` alongside the versioned `FormCast-v<tag>.zip`, so
+  the version-independent
+  `releases/latest/download/FormCast.zip` URL resolves to the latest
+  release.
+
 ## [1.1.1] -- 2026-05-27
 
 ### Fixed

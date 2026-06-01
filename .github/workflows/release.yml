@@ -3,8 +3,10 @@ name: Release
 # Release pipeline. Fires on pushes of tags matching v* (e.g. v1.0.0,
 # v1.2.3-rc1). Builds the solution in Release, runs the full xUnit
 # test suite as defense-in-depth against a tag on an untested commit,
-# stages the release tree, produces FormCast-v<tag>.zip, and publishes
-# a GitHub release with the zip attached and CHANGELOG.md as the body.
+# stages the release tree, produces FormCast-v<tag>.zip plus an
+# identical stably-named FormCast.zip (so the version-independent
+# .../releases/latest/download/FormCast.zip URL works), and publishes
+# a GitHub release with both zips attached and CHANGELOG.md as the body.
 #
 # Continuous integration for normal development lives in ci.yml and
 # fires on push/PR to main.
@@ -89,11 +91,18 @@ jobs:
           $tag = '${{ github.ref_name }}'
           Compress-Archive -Path release-stage/* -DestinationPath "FormCast-$tag.zip"
 
+          # Also publish a stably-named copy so the "latest release"
+          # download URL is version-independent and can be hard-coded
+          # in docs / installers:
+          #   .../releases/latest/download/FormCast.zip
+          Copy-Item "FormCast-$tag.zip" "FormCast.zip"
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             FormCast-*.zip
+            FormCast.zip
           generate_release_notes: true
           body_path: CHANGELOG.md
         env:

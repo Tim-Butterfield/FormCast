@@ -1131,6 +1131,12 @@ namespace FormCast
                 {
                     result = TryReadDateTimePickerValue(seq, c);
                 }
+                else if (string.Equals(prop, "value", StringComparison.OrdinalIgnoreCase) &&
+                         (string.Equals(c.Type, "NUMERICUPDOWN", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(c.Type, "TRACKBAR", StringComparison.OrdinalIgnoreCase)))
+                {
+                    result = TryReadNumericValue(seq, c);
+                }
                 else
                 {
                     result = TryGetControlProperty(c, prop);
@@ -1277,6 +1283,45 @@ namespace FormCast
                 if (target is DateTimePicker dtp)
                 {
                     result = dtp.Value.ToString("o", CultureInfo.InvariantCulture);
+                }
+            });
+            return result;
+        }
+
+        /// <summary>
+        /// Read the live numeric value of a realized NUMERICUPDOWN or
+        /// TRACKBAR. Without this, FORMGET value falls through to the
+        /// descriptor's stored "value" property and returns the initial
+        /// value rather than what the user changed it to in the form.
+        /// Falls back to the stored property when the form has not been
+        /// realized.
+        /// </summary>
+        private string TryReadNumericValue(int seq, ControlDescriptor c)
+        {
+            Form? realized;
+            lock (_realizedFormsLock)
+            {
+                _realizedForms.TryGetValue(seq, out realized);
+            }
+            string fallback = c.Properties.TryGetValue("value", out string? v)
+                ? v ?? string.Empty : string.Empty;
+            if (realized is null) { return fallback; }
+
+            string result = fallback;
+            _guiHost.Invoke(() =>
+            {
+                if (realized.IsDisposed) { return; }
+                System.Windows.Forms.Control? target = FindRealizedControl(realized, c.Id);
+                if (target is NumericUpDown nud)
+                {
+                    // Value is a decimal; format invariantly so a
+                    // control configured with DecimalPlaces > 0 keeps
+                    // its fractional part instead of being truncated.
+                    result = nud.Value.ToString(CultureInfo.InvariantCulture);
+                }
+                else if (target is TrackBar tb)
+                {
+                    result = tb.Value.ToString(CultureInfo.InvariantCulture);
                 }
             });
             return result;
