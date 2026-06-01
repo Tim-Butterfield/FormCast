@@ -185,7 +185,10 @@ Output:
 
 ## Install
 
-1. Download the latest FormCast release zip from the releases page and extract it.
+1. Download the latest FormCast release zip and extract it. This link
+ always resolves to the newest release, regardless of version:
+ [**FormCast.zip**](https://github.com/Tim-Butterfield/FormCast/releases/latest/download/FormCast.zip)
+ (or pick a specific version from the [releases page](https://github.com/Tim-Butterfield/FormCast/releases)).
 2. Copy the extracted files to a permanent location (e.g.
  `C:\FormCast\`). All dependency DLLs must stay alongside
  `FormCast.dll`.
